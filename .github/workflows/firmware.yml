@@ -26,7 +26,12 @@ jobs:
           target: esp32s3
           # merge-bin writes build/ButterBotCtrl-merged.bin: bootloader, partitions, app and SPIFFS,
           # one file flashed at 0x0 (same layout as the official CircuitMess releases)
-          command: idf.py build && idf.py merge-bin -o ButterBotCtrl-merged.bin
+          # The controller's sdkconfig uses flash size 'detect', which merge_bin rejects; 'keep' leaves the
+          # size in the bootloader header as built (same as the official release images).
+          command: >-
+            idf.py build && cd build &&
+            sed 's/--flash_size detect/--flash_size keep/' flash_args > flash_args_merge &&
+            python -m esptool --chip esp32s3 merge_bin -o ButterBotCtrl-merged.bin @flash_args_merge
 
       - name: Name the image
         id: name
