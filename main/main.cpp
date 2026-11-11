@@ -1,5 +1,7 @@
 #include <nvs_flash.h>
 #include <esp_random.h>
+#include <esp_timer.h>
+#include <esp_app_desc.h>
 #include <cstdlib>
 #include <Core/EntryPoint.h>
 #include <Devices/Display.h>
@@ -220,9 +222,42 @@ protected:
 			return std::make_unique<IntroScreen>();
 		});
 		lvgl->startThread();
+
+		startStatusReporter();
 	}
 
 private:
+	/**
+	 * Fork: one status line on the USB serial console every StatusIntervalMs, e.g.
+	 *   [BBSTAT] dev=ctrl fw=v1.1-exadon.1 batt=81 link=connected up=1234
+	 * Dimension Hopper's "Check status" listens for it (without resetting the board).
+	 */
+	static constexpr uint64_t StatusIntervalMs = 5000;
+	esp_timer_handle_t statusTimer = nullptr;
+
+	void startStatusReporter(){
+		const esp_timer_create_args_t args = {
+			.callback = [](void* self){ static_cast<ButterBotController*>(self)->printStatus(); },
+			.arg = this,
+			.dispatch_method = ESP_TIMER_TASK,
+			.name = "bbstat",
+			.skip_unhandled_events = true,
+		};
+		if(esp_timer_create(&args, &statusTimer) == ESP_OK){
+			esp_timer_start_periodic(statusTimer, StatusIntervalMs * 1000);
+		}
+	}
+
+	void printStatus() const{
+		const Battery* battery = getService<Battery>();
+		const Com* com = getService<Com>();
+		printf("[BBSTAT] dev=ctrl fw=%s batt=%d link=%s up=%llu\n",
+		       esp_app_get_description()->version,
+		       battery != nullptr ? static_cast<int>(battery->getPerc()) : -1,
+		       com == nullptr ? "unknown" : (com->getStatus() == Com::ConnStatus::Connected ? "connected" : "disconnected"),
+		       static_cast<unsigned long long>(esp_timer_get_time() / 1000000));
+	}
+
 	void onBatteryChange(const Battery::Level level){
 		if(level != Battery::Level::Critical){
 			return;
