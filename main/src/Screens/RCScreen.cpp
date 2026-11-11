@@ -7,6 +7,7 @@
 #include <LV_Interface/LVGL.h>
 #include "HomeScreen.h"
 #include "PairingScreen.h"
+#include "Fonts/font.hpp"
 
 RCScreen::RCScreen(){
 	const Application* app = Application::getApp();
@@ -29,6 +30,18 @@ RCScreen::RCScreen(){
 	lv_img_set_src(feedImg, &imgDsc);
 
 	topBar = new TopBar(*this);
+
+	exitHint = lv_label_create(*this);
+	lv_label_set_text_static(exitHint, "Override: exit RC");
+	lv_obj_set_style_text_font(exitHint, &lv_font_butter, 0);
+	lv_obj_set_style_text_color(exitHint, lv_color_hex(0x39ff6a), 0);
+	lv_obj_set_style_bg_color(exitHint, lv_color_black(), 0);
+	lv_obj_set_style_bg_opa(exitHint, LV_OPA_70, 0);
+	lv_obj_set_style_pad_hor(exitHint, 4, 0);
+	lv_obj_set_style_pad_ver(exitHint, 3, 0);
+	lv_obj_set_style_radius(exitHint, 3, 0);
+	lv_obj_align(exitHint, LV_ALIGN_BOTTOM_MID, 0, -4);
+	showExitHint(ExitHintStartMs);
 
 	Com* com = app->getService<Com>();
 
@@ -69,6 +82,10 @@ void RCScreen::loop(){
 		topBar->loop();
 	}
 
+	if(exitHint != nullptr){
+		lv_obj_update_flag(exitHint, LV_OBJ_FLAG_HIDDEN, millis() >= exitHintUntil);
+	}
+
 	feed->nextFrame([this](const uint16_t* buf){
 		memcpy(feedBuf, buf, 128*128*2);
 		lv_obj_invalidate(feedImg);
@@ -98,27 +115,30 @@ void RCScreen::loop(){
 	com->sendDrive(data);
 }
 
-void RCScreen::handleButtonEvent(Button btn, ButtonInput::Action action){
-	if(btn != Button::ManualOverride){
-		if(action != ButtonInput::Action::Press){
-			return;
-		}
+void RCScreen::showExitHint(uint64_t durationMs){
+	exitHintUntil = millis() + durationMs;
+	if(exitHint != nullptr){
+		lv_obj_remove_flag(exitHint, LV_OBJ_FLAG_HIDDEN);
+		lv_obj_move_foreground(exitHint);
+	}
+}
 
+void RCScreen::handleButtonEvent(Button btn, ButtonInput::Action action){
+	// Only presses do anything here. Acting on press (not release) also means the release of the Override
+	// hold that started RC - pressed on the home screen - can't exit RC straight away.
+	if(action != ButtonInput::Action::Press || btn == Button::Joystick){
+		return; // the joystick button has no function
+	}
+
+	if(btn != Button::ManualOverride){
 		if(Com* com = Object::getApp()->getService<Com>()){
 			com->sendCommand(Ctrl::Command::RCSound);
 		}
+		showExitHint(ExitHintRepeatMs);
 		return;
 	}
 
-	if(action == ButtonInput::Action::Press){
-		overridePressed = true;
-		return;
-	}
-
-	if(!overridePressed){
-		return;
-	}
-	overridePressed = false;
+	// Manual Override: leave RC right away
 
 	if(Com* com = Object::getApp()->getService<Com>()){
 		com->sendCommand(Ctrl::Command::ExitRC);

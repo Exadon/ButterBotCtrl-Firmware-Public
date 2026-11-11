@@ -171,10 +171,6 @@ void HomeScreen::handleButtonEvent(const Button btn, const ButtonInput::Action a
 		return;
 	}
 
-	if(handleSettingsChord(btn, action)){
-		return;
-	}
-
 	// Early return if popup modal active
 	if(popup != nullptr && btn != popupOwner){
 		if(static_cast<HoldPopupWindow*>(popup)->isBarFull() || overridePressTime != 0 || summonPressTime != 0){
@@ -183,7 +179,9 @@ void HomeScreen::handleButtonEvent(const Button btn, const ButtonInput::Action a
 	}
 
 	if(action == ButtonInput::Action::Press){
-		if(btn == Button::Summon){
+		if(btn == Button::ShutUp){
+			com->sendCommand(Ctrl::Command::ShutUp);
+		} else if(btn == Button::Summon){
 			// Summon press takes over the short-press override hint
 			if(overrideHintShownAt != 0){
 				clearPopupFor(Button::ManualOverride);
@@ -205,9 +203,6 @@ void HomeScreen::handleButtonEvent(const Button btn, const ButtonInput::Action a
 
 	if(btn == Button::Poke){
 		com->sendCommand(Ctrl::Command::Poke);
-	} else if(btn == Button::ShutUp){
-		// On release (not press) so Override + Shut Up can open Settings without muting the robot
-		com->sendCommand(Ctrl::Command::ShutUp);
 	} else if(btn == Button::Summon){
 		if(summonPressTime != 0 && millis() - summonPressTime < SummonShortPressMaxMs && listenSendCount < MaxListenSends){
 			com->sendCommand(Ctrl::Command::Listen);
@@ -271,15 +266,6 @@ void HomeScreen::loop(){
 	}
 
 	checkStickOpensMenu();
-
-	if(chordStartTime != 0 && millis() - chordStartTime >= SettingsChordMs){
-		chordStartTime = 0;
-		clearPopup();
-		transition([]() {
-			return std::make_unique<SettingsScreen>();
-		});
-		return;
-	}
 
 	if(overridePressTime != 0 && millis() - overridePressTime >= OverrideHoldMinMs){
 		overridePressTime = 0;
@@ -719,40 +705,6 @@ void HomeScreen::showActions(){
 	lv_indev_wait_release(InputLVGL::getInstance()->getIndev());
 }
 
-bool HomeScreen::handleSettingsChord(const Button btn, const ButtonInput::Action action){
-	if(btn != Button::ManualOverride && btn != Button::ShutUp){
-		return false;
-	}
-
-	const bool down = action == ButtonInput::Action::Press;
-	(btn == Button::ManualOverride ? overrideDown : shutUpDown) = down;
-
-	if(down && overrideDown && shutUpDown && !chordUsed){
-		// Both held: cancel the Override hold-for-RC and start the Settings hold instead
-		chordUsed = true;
-		overridePressTime = 0;
-		overrideHintShownAt = 0;
-		clearPopup();
-		chordStartTime = millis();
-		showPopup(new HoldPopupWindow(*this, "Settings", SettingsChordMs), Button::ManualOverride);
-		return true;
-	}
-
-	if(!chordUsed){
-		return false; // a normal press/release of one of the two buttons
-	}
-
-	// After a chord started, both buttons are swallowed until both are released
-	if(!down && chordStartTime != 0){
-		chordStartTime = 0; // let go too early: cancel
-		clearPopup();
-	}
-	if(!overrideDown && !shutUpDown){
-		chordUsed = false;
-	}
-	return true;
-}
-
 void HomeScreen::checkStickOpensMenu(){
 	Joystick* joystick = Object::getApp()->getDevice<Joystick>();
 	if(joystick == nullptr){
@@ -766,7 +718,7 @@ void HomeScreen::checkStickOpensMenu(){
 		return;
 	}
 
-	if(!stickArmed || actionElement != nullptr || popup != nullptr || rcWaitStartTime != 0 || chordStartTime != 0){
+	if(!stickArmed || actionElement != nullptr || popup != nullptr || rcWaitStartTime != 0){
 		return;
 	}
 

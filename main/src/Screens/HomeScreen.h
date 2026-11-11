@@ -116,15 +116,6 @@ private:
 	bool stickArmed = false;
 	void checkStickOpensMenu();
 
-	// Override + Shut Up held together for SettingsChordMs opens Settings. While a chord is in progress
-	// (or until both buttons are released after one) the two buttons do nothing else. Shut Up's mute moved
-	// from press to release so starting a chord with it doesn't mute the robot first.
-	static constexpr uint64_t SettingsChordMs = 800;
-	bool overrideDown = false;
-	bool shutUpDown = false;
-	bool chordUsed = false;
-	uint64_t chordStartTime = 0;
-	bool handleSettingsChord(Button btn, ButtonInput::Action action);
 
 	void loop() override;
 

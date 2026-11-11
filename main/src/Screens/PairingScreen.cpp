@@ -104,13 +104,6 @@ void PairingScreen::handleButtonEvent(const Button btn, const ButtonInput::Actio
 		return;
 	}
 
-	if(btn == Button::ManualOverride || btn == Button::ShutUp){
-		const bool down = action == ButtonInput::Action::Press;
-		(btn == Button::ManualOverride ? overrideDown : shutUpDown) = down;
-		chordStartTime = (overrideDown && shutUpDown) ? (chordStartTime ? chordStartTime : millis()) : 0;
-		return;
-	}
-
 }
 
 void PairingScreen::loop(){
@@ -128,11 +121,5 @@ void PairingScreen::loop(){
 		}
 	}
 
-	if(chordStartTime != 0 && millis() - chordStartTime >= SettingsChordMs){
-		chordStartTime = 0;
-		transition([]() {
-			return std::make_unique<SettingsScreen>();
-		});
-	}
 
 }

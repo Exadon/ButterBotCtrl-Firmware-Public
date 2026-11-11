@@ -26,7 +26,15 @@ private:
 
 	DriveData lastData = {};
 	uint64_t lastDataSend = 0;
-	bool overridePressed = false;
+
+	// "Override: exit RC" hint over the camera feed. RC mode is full screen with nothing saying how to leave,
+	// and every other button plays a sound, so mashing buttons to get out only made noise. Shown when RC
+	// starts and again whenever a sound button is pressed.
+	static constexpr uint64_t ExitHintStartMs = 4000;
+	static constexpr uint64_t ExitHintRepeatMs = 3000;
+	lv_obj_t* exitHint = nullptr;
+	uint64_t exitHintUntil = 0;
+	void showExitHint(uint64_t durationMs);
 
 	uint8_t* feedBuf;
 	lv_img_dsc_t imgDsc = {
