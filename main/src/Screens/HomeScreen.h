@@ -53,6 +53,8 @@ private:
 	lv_obj_t* windowContainer;
 	lv_obj_t* scrollOffset;
 	HomeWindow* activeWindow = nullptr;
+	// Payload size the active window was created with; live updates must match it (see onData)
+	size_t activeWindowDataSize = 0;
 	GuideElement* guide = nullptr;
 
 	lv_anim_t windowFadeAnim;
@@ -120,7 +122,7 @@ private:
 	 * @param window new action window
 	 * @param isListen whether the window is a ListenWindow
 	 */
-	void insertWindow(HomeWindow* window, bool isListen);
+	void insertWindow(HomeWindow* window, bool isListen, size_t dataSize);
 
 	/** Fade out and delete the current active window */
 	void clearWindow();
