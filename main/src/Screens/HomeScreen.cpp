@@ -1,3 +1,6 @@
+#include <Periph/Joystick.h>
+#include <algorithm>
+#include <cstdlib>
 #include "HomeScreen.h"
 
 #include <algorithm>
@@ -145,8 +148,8 @@ void HomeScreen::handleButtonEvent(const Button btn, const ButtonInput::Action a
 	}
 
 	// Action list is modal. The joystick moves the highlight (LVGL keypad indev), Shut Up selects (it's the
-	// indev's ENTER button, handled by LVGL), the joystick press does nothing, and any other button
-	// (Manual Override = back) closes the list; that press and its release are swallowed.
+	// indev's ENTER button, handled by LVGL), the joystick button does nothing (anywhere), Manual Override goes
+	// back a level / closes the list, and any other button closes it; that press and its release are swallowed.
 	if(actionElement != nullptr){
 		if(btn == Button::ShutUp || btn == Button::Joystick){
 			return;
@@ -177,11 +180,6 @@ void HomeScreen::handleButtonEvent(const Button btn, const ButtonInput::Action a
 		if(static_cast<HoldPopupWindow*>(popup)->isBarFull() || overridePressTime != 0 || summonPressTime != 0){
 			return;
 		}
-	}
-
-	if(btn == Button::Joystick && action == ButtonInput::Action::Release){
-		showActions();
-		return;
 	}
 
 	if(action == ButtonInput::Action::Press){
@@ -271,6 +269,8 @@ void HomeScreen::loop(){
 		com->sendCommand(Ctrl::Command::Summon);
 		summonPressTime = 0;
 	}
+
+	checkStickOpensMenu();
 
 	if(chordStartTime != 0 && millis() - chordStartTime >= SettingsChordMs){
 		chordStartTime = 0;
@@ -700,7 +700,12 @@ void HomeScreen::showActions(){
 	summonPressTime = 0;
 	overridePressTime = 0;
 
-	actionElement = new ActionElement(*this, inputGroup, [this](const BB::Action::Scenario scenario, const ScenarioData data) {
+	actionElement = new ActionElement(*this, inputGroup, [this]() {
+		// SETTINGS row; the list is cleaned up by the screen transition
+		transition([]() {
+			return std::make_unique<SettingsScreen>();
+		});
+	}, [this](const BB::Action::Scenario scenario, const ScenarioData data) {
 		com->sendScenario(scenario, data);
 		// Deleting the list mid-event-dispatch is unsafe; close it on the next loop() tick
 		actionsClosePending = true;
@@ -748,8 +753,32 @@ bool HomeScreen::handleSettingsChord(const Button btn, const ButtonInput::Action
 	return true;
 }
 
+void HomeScreen::checkStickOpensMenu(){
+	Joystick* joystick = Object::getApp()->getDevice<Joystick>();
+	if(joystick == nullptr){
+		return;
+	}
+
+	const int h = std::abs(joystick->getHorizontal());
+	const int v = std::abs(joystick->getVertical());
+	if(h < StickRearmThreshold && v < StickRearmThreshold){
+		stickArmed = true;
+		return;
+	}
+
+	if(!stickArmed || actionElement != nullptr || popup != nullptr || rcWaitStartTime != 0 || chordStartTime != 0){
+		return;
+	}
+
+	if(std::max(h, v) >= StickOpenThreshold){
+		stickArmed = false;
+		showActions(); // its lv_indev_wait_release() keeps the held direction from also moving the highlight
+	}
+}
+
 void HomeScreen::clearActions(){
 	actionsClosePending = false;
+	stickArmed = false; // the stick must return to centre before it can reopen the list
 	if(actionElement == nullptr) return;
 
 	lastActionState = actionElement->getState();

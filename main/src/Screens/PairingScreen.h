@@ -27,6 +27,11 @@ private:
 	void handleButtonEvent(Button btn, ButtonInput::Action action);
 	ButtonGate buttonGate; // ignores releases of buttons pressed before this screen opened
 
+	// Pushing the stick opens Settings here (there's no action list without a robot); must start centred
+	static constexpr int StickOpenThreshold = 60;
+	static constexpr int StickRearmThreshold = 25;
+	bool stickArmed = false;
+
 	// Override + Shut Up held together also opens Settings here (same chord as the home screen)
 	static constexpr uint64_t SettingsChordMs = 800;
 	bool overrideDown = false;

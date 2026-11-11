@@ -3,13 +3,11 @@
 #include "Fonts/font.hpp"
 
 static constexpr const char* Lines[] = {
-		"Override: Hold for RC",
-		"Poke: Existential dread",
-		"Shut up: (Un)Mute",
-		"Summon: Press to listen, hold to summon",
-		"Joystick press: Menu",
-		"In menu: Shut up selects, Override goes back",
-		"Hold Override + Shut up: Settings",
+		"Override: hold for RC",
+		"Poke: existential dread",
+		"Shut up: mute",
+		"Summon: talk, hold: come",
+		"Stick: menu",
 };
 
 GuideElement::GuideElement(lv_obj_t* parent) : LVObject(parent){

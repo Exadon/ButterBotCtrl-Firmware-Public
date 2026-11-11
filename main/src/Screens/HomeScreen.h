@@ -109,6 +109,13 @@ private:
 	// Folder + focused entry when the list was last closed
 	ActionListState lastActionState{};
 
+	// Pushing the stick opens the action list (the joystick button has no function). The stick has to return
+	// to centre before it can open the list again, so closing the list while still pushing doesn't reopen it.
+	static constexpr int StickOpenThreshold = 60;
+	static constexpr int StickRearmThreshold = 25;
+	bool stickArmed = false;
+	void checkStickOpensMenu();
+
 	// Override + Shut Up held together for SettingsChordMs opens Settings. While a chord is in progress
 	// (or until both buttons are released after one) the two buttons do nothing else. Shut Up's mute moved
 	// from press to release so starting a chord with it doesn't mute the robot first.

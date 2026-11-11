@@ -20,15 +20,16 @@ struct ActionListState {
 class ActionElement : public LVObject {
 public:
 	/**
-	 * Full-screen pop-up listing the actions, grouped into folders (Util/ScenarioMapping.h). The joystick moves
-	 * the highlight; Shut Up (the keypad's ENTER) opens a folder or runs an action; the home screen calls back()
-	 * on Manual Override. Settings is no longer in here - it opens with Override + Shut Up held together.
+	 * Full-screen pop-up listing the actions, grouped into folders (Util/ScenarioMapping.h), with SETTINGS as the
+	 * first row of the folder list. The joystick moves the highlight; Shut Up (the keypad's ENTER) opens a folder,
+	 * Settings or runs an action; the home screen calls back() on Manual Override.
 	 * @param parent parent LVGL object
 	 * @param inputGroup screen input group the list buttons are added to
+	 * @param settingsCb invoked when the SETTINGS row is selected
 	 * @param scenarioCb invoked when an action is selected
 	 * @param initial where to open (restores the last position)
 	 */
-	ActionElement(lv_obj_t* parent, lv_group_t* inputGroup,
+	ActionElement(lv_obj_t* parent, lv_group_t* inputGroup, std::function<void()> settingsCb,
 	              std::function<void(BB::Action::Scenario, ScenarioData)> scenarioCb, ActionListState initial = {});
 	~ActionElement() override;
 
@@ -46,7 +47,12 @@ private:
 
 	ThemeService* theme;
 	lv_group_t* inputGroup;
+	const std::function<void()> settingsCb;
 	const std::function<void(BB::Action::Scenario, ScenarioData)> scenarioCb;
+
+	// The folder list shows SETTINGS as row 0, so folder i is row i + FolderRowOffset
+	static constexpr int32_t FolderRowOffset = 1;
+	static constexpr const char* SettingsTitle = "SETTINGS";
 
 	int16_t currentFolder = -1;
 	uint16_t elIndex = 0;
@@ -71,7 +77,7 @@ private:
 
 	void buildStyles();
 	void show(int16_t folder, uint16_t focusIndex);
-	lv_obj_t* addButton(const char* title, const char* subtitle);
+	lv_obj_t* addButton(const char* title, const char* subtitle, bool settingsIcon = false);
 	void moveFocus(int8_t dir);
 	void onItemClicked(const lv_obj_t* btn);
 	static std::string collectPhrases(BB::Action::Scenario scenario, ScenarioData data);

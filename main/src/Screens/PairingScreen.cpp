@@ -1,3 +1,6 @@
+#include <Periph/Joystick.h>
+#include <algorithm>
+#include <cstdlib>
 #include "PairingScreen.h"
 #include <Util/stdafx.h>
 
@@ -88,7 +91,7 @@ void PairingScreen::buildSettingsHint(){
 	lv_obj_set_style_text_font(label, &lv_font_butter, 0);
 	lv_obj_set_style_text_color(label, style.primaryColor, 0);
 	lv_obj_set_style_pad_hor(label, 2, 0);
-	lv_label_set_text_static(label, "Click joystick for");
+	lv_label_set_text_static(label, "Push stick for");
 
 	// The pairing archive carries the default theme's settings icon
 	lv_obj_t* icon = lv_image_create(row);
@@ -108,14 +111,23 @@ void PairingScreen::handleButtonEvent(const Button btn, const ButtonInput::Actio
 		return;
 	}
 
-	if(btn == Button::Joystick && action == ButtonInput::Action::Release){
-		transition([]() {
-			return std::make_unique<SettingsScreen>();
-		});
-	}
 }
 
 void PairingScreen::loop(){
+	if(Joystick* joystick = Object::getApp()->getDevice<Joystick>()){
+		const int h = std::abs(joystick->getHorizontal());
+		const int v = std::abs(joystick->getVertical());
+		if(h < StickRearmThreshold && v < StickRearmThreshold){
+			stickArmed = true;
+		}else if(stickArmed && std::max(h, v) >= StickOpenThreshold){
+			stickArmed = false;
+			transition([]() {
+				return std::make_unique<SettingsScreen>();
+			});
+			return;
+		}
+	}
+
 	if(chordStartTime != 0 && millis() - chordStartTime >= SettingsChordMs){
 		chordStartTime = 0;
 		transition([]() {

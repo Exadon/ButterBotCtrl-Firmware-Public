@@ -8,8 +8,9 @@
 
 #include "Fonts/font.hpp"
 
-ActionElement::ActionElement(lv_obj_t* parent, lv_group_t* inputGroup, std::function<void(BB::Action::Scenario, ScenarioData)> scenarioCb,
-                             const ActionListState initial) : LVObject(parent), inputGroup(inputGroup), scenarioCb(std::move(scenarioCb)){
+ActionElement::ActionElement(lv_obj_t* parent, lv_group_t* inputGroup, std::function<void()> settingsCb,
+                             std::function<void(BB::Action::Scenario, ScenarioData)> scenarioCb, const ActionListState initial)
+		: LVObject(parent), inputGroup(inputGroup), settingsCb(std::move(settingsCb)), scenarioCb(std::move(scenarioCb)){
 	theme = Application::getApp()->getService<ThemeService>();
 
 	buildStyles();
@@ -28,7 +29,7 @@ ActionListState ActionElement::getState() const{
 
 void ActionElement::back(){
 	if(currentFolder >= 0){
-		requestShow(-1, static_cast<uint16_t>(currentFolder));
+		requestShow(-1, static_cast<uint16_t>(currentFolder + FolderRowOffset));
 	}
 }
 
@@ -101,9 +102,10 @@ void ActionElement::show(int16_t folder, uint16_t focusIndex){
 	currentFolder = folder;
 
 	if(folder < 0){
-		// Folder list
+		// Folder list, with SETTINGS on top
 		phraseTexts.reserve(std::size(ActionFolders));
-		buttons.reserve(std::size(ActionFolders));
+		buttons.reserve(std::size(ActionFolders) + FolderRowOffset);
+		addButton(SettingsTitle, nullptr, true);
 		for(const ActionFolder& f : ActionFolders){
 			phraseTexts.push_back(std::to_string(folderSize(f)) + (f.isChat ? " chat lines" : " actions"));
 			addButton(f.name, phraseTexts.back().c_str());
@@ -143,7 +145,7 @@ void ActionElement::show(int16_t folder, uint16_t focusIndex){
 	lv_obj_scroll_to_view(buttons[elIndex], LV_ANIM_OFF);
 }
 
-lv_obj_t* ActionElement::addButton(const char* title, const char* subtitle){
+lv_obj_t* ActionElement::addButton(const char* title, const char* subtitle, bool settingsIcon){
 	lv_obj_t* btn = lv_obj_create(*this);
 	lv_obj_set_size(btn, lv_pct(100), LV_SIZE_CONTENT);
 	lv_obj_set_layout(btn, LV_LAYOUT_FLEX);
@@ -153,11 +155,27 @@ lv_obj_t* ActionElement::addButton(const char* title, const char* subtitle){
 	lv_obj_add_style(btn, buttonStyle, 0);
 	lv_obj_add_style(btn, buttonFocusedStyle, LV_STATE_FOCUSED);
 
+	if(settingsIcon){
+		// SETTINGS: a horizontal row with the settings icon left of the title
+		lv_obj_set_flex_flow(btn, LV_FLEX_FLOW_ROW);
+		lv_obj_set_flex_align(btn, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+		lv_obj_set_style_pad_hor(btn, 2, 0);
+
+		lv_obj_t* icon = lv_image_create(btn);
+		lv_image_set_src(icon, theme->getAsset(Asset::Settings));
+		lv_obj_set_style_margin_all(icon, 2, 0);
+		lv_obj_set_style_pad_right(icon, 2, 0);
+	}
+
 	lv_obj_t* titleLabel = lv_label_create(btn);
 	lv_obj_add_style(titleLabel, labelStyle, 0);
 	lv_label_set_long_mode(titleLabel, LV_LABEL_LONG_CLIP);
 	lv_label_set_text_static(titleLabel, title);
 	lv_obj_set_style_pad_hor(titleLabel, 2, 0);
+	if(settingsIcon){
+		// The shared full-width style would overflow the icon row
+		lv_obj_set_style_width(titleLabel, LV_SIZE_CONTENT, 0);
+	}
 
 	if(subtitle != nullptr && subtitle[0] != '\0'){
 		lv_obj_t* phraseLabel = lv_label_create(btn);
@@ -222,9 +240,14 @@ void ActionElement::onItemClicked(const lv_obj_t* btn){
 	if(index < 0) return;
 
 	if(currentFolder < 0){
+		if(index == 0){
+			if(settingsCb) settingsCb();
+			return;
+		}
 		// Open the folder (deferred: we're inside this row's own event)
-		if(index < static_cast<int32_t>(std::size(ActionFolders))){
-			requestShow(static_cast<int16_t>(index), 0);
+		const int32_t folder = index - FolderRowOffset;
+		if(folder < static_cast<int32_t>(std::size(ActionFolders))){
+			requestShow(static_cast<int16_t>(folder), 0);
 		}
 		return;
 	}
