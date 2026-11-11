@@ -1,6 +1,11 @@
 #include <nvs_flash.h>
 #include <esp_random.h>
 #include <esp_timer.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <atomic>
+#include <string>
+#include <Util/stdafx.h>
 #include <esp_app_desc.h>
 #include <cstdlib>
 #include <Core/EntryPoint.h>
@@ -233,19 +238,80 @@ private:
 	 * Dimension Hopper's "Check status" listens for it (without resetting the board).
 	 */
 	static constexpr uint64_t StatusIntervalMs = 5000;
-	esp_timer_handle_t statusTimer = nullptr;
+
+	/*
+	 * Diagnostics stream for Dimension Hopper's Diagnostics tab. Off by default; "diag on" over the serial
+	 * port enables it for DiagHoldMs (the app re-sends it while connected), "diag off" stops it.
+	 * While on, a [BBDIAG] line is printed every DiagIntervalMs: joystick (raw + processed + calibrated
+	 * centre), the five buttons, battery and robot link. Runs in its own low-priority task.
+	 */
+	static constexpr uint64_t DiagIntervalMs = 100;
+	static constexpr uint64_t DiagHoldMs = 15000;
+	uint64_t diagUntil = 0;
+	std::atomic<uint32_t> buttonsDown{ 0 }; // bit per Button enum value
 
 	void startStatusReporter(){
-		const esp_timer_create_args_t args = {
-			.callback = [](void* self){ static_cast<ButterBotController*>(self)->printStatus(); },
-			.arg = this,
-			.dispatch_method = ESP_TIMER_TASK,
-			.name = "bbstat",
-			.skip_unhandled_events = true,
-		};
-		if(esp_timer_create(&args, &statusTimer) == ESP_OK){
-			esp_timer_start_periodic(statusTimer, StatusIntervalMs * 1000);
+		if(ButtonInput* bi = getService<ButtonInput>()){
+			bi->OnButtonEvent.bind(this, [this](Enum<int> btn, ButtonInput::Action action){
+				const uint32_t bit = 1u << static_cast<int>(btn);
+				if(action == ButtonInput::Action::Press) buttonsDown |= bit;
+				else buttonsDown &= ~bit;
+			});
 		}
+		xTaskCreatePinnedToCore([](void* self){ static_cast<ButterBotController*>(self)->diagTask(); }, "bbdiag", 4096,
+		                        this, 1, nullptr, tskNO_AFFINITY);
+	}
+
+	void diagTask(){
+		const int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
+		fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
+
+		std::string line;
+		uint64_t nextStatus = millis() + StatusIntervalMs;
+		uint64_t nextDiag = 0;
+		for(;;){
+			char buf[32];
+			const int n = read(STDIN_FILENO, buf, sizeof(buf));
+			for(int i = 0; i < n; ++i){
+				if(buf[i] == '\n' || buf[i] == '\r'){
+					if(line == "diag on") diagUntil = millis() + DiagHoldMs;
+					else if(line == "diag off") diagUntil = 0;
+					line.clear();
+				}else if(line.size() < 32){
+					line += buf[i];
+				}
+			}
+
+			const uint64_t now = millis();
+			if(now >= nextStatus){
+				nextStatus = now + StatusIntervalMs;
+				printStatus();
+			}
+			if(now < diagUntil && now >= nextDiag){
+				nextDiag = now + DiagIntervalMs;
+				printDiag();
+			}
+			vTaskDelay(pdMS_TO_TICKS(20));
+		}
+	}
+
+	void printDiag() const{
+		const Joystick* joy = getDevice<Joystick>();
+		const Battery* battery = getService<Battery>();
+		const Com* com = getService<Com>();
+		const uint32_t b = buttonsDown.load();
+		auto down = [b](Button btn){ return static_cast<int>((b >> static_cast<int>(btn)) & 1u); };
+		Joystick::Diag j{};
+		if(joy != nullptr){
+			j = joy->getDiag();
+		}
+		printf("[BBDIAG] dev=ctrl joy_x=%d joy_y=%d raw_x=%d raw_y=%d center_x=%d center_y=%d "
+		       "override=%d poke=%d shutup=%d summon=%d joybtn=%d batt=%d link=%d\n",
+		       j.x, j.y, j.rawX, j.rawY, j.centerX, j.centerY,
+		       down(Button::ManualOverride), down(Button::Poke), down(Button::ShutUp), down(Button::Summon),
+		       down(Button::Joystick),
+		       battery != nullptr ? static_cast<int>(battery->getPerc()) : -1,
+		       com != nullptr && com->getStatus() == Com::ConnStatus::Connected ? 1 : 0);
 	}
 
 	void printStatus() const{

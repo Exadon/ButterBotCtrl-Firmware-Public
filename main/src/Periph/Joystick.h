@@ -17,6 +17,14 @@ public:
 	int8_t getHorizontal() const noexcept;
 	int8_t getVertical() const noexcept;
 
+	/** Live readings for the diagnostics stream; safe from any thread. */
+	struct Diag {
+		int x = 0, y = 0;             // processed (-100..100, what menus / RC use)
+		int rawX = 0, rawY = 0;       // filtered ADC counts (0..4095)
+		int centerX = 0, centerY = 0; // calibrated centre in ADC counts
+	};
+	Diag getDiag() const noexcept;
+
 protected:
 	void tick(float deltaTime) noexcept override;
 
@@ -61,6 +69,8 @@ private:
 
 	std::atomic<int8_t> hValue{ 0 };
 	std::atomic<int8_t> vValue{ 0 };
+	std::atomic<int16_t> hRaw{ 0 };
+	std::atomic<int16_t> vRaw{ 0 };
 
 	void finishCalibration();
 	static int8_t mapSample(float raw, float center) noexcept;

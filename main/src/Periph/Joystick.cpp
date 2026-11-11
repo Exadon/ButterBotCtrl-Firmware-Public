@@ -28,6 +28,11 @@ int8_t Joystick::getVertical() const noexcept{
 	return vValue.load();
 }
 
+Joystick::Diag Joystick::getDiag() const noexcept{
+	return { getHorizontal(), getVertical(), hRaw.load(), vRaw.load(),
+	         static_cast<int>(hCalib.center), static_cast<int>(vCalib.center) };
+}
+
 int8_t Joystick::mapSample(float raw, float center) noexcept{
 	// Scale each side by its own span, so an off-centre stick still reaches 100% in both directions
 	const float centered = raw - center;
@@ -57,6 +62,8 @@ void Joystick::tick(float deltaTime) noexcept{
 
 	const float h = hReader->sample();
 	const float v = vReader->sample();
+	hRaw = static_cast<int16_t>(h);
+	vRaw = static_cast<int16_t>(v);
 
 	if(!calibrated){
 		hCalib.add(h);
