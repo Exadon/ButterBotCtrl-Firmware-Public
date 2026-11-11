@@ -1,4 +1,5 @@
 #include "PairingScreen.h"
+#include <Util/stdafx.h>
 
 #include <LV_Interface/LVGL.h>
 #include <LV_Interface/LVGIF.h>
@@ -96,6 +97,13 @@ void PairingScreen::buildSettingsHint(){
 }
 
 void PairingScreen::handleButtonEvent(const Button btn, const ButtonInput::Action action){
+	if(btn == Button::ManualOverride || btn == Button::ShutUp){
+		const bool down = action == ButtonInput::Action::Press;
+		(btn == Button::ManualOverride ? overrideDown : shutUpDown) = down;
+		chordStartTime = (overrideDown && shutUpDown) ? (chordStartTime ? chordStartTime : millis()) : 0;
+		return;
+	}
+
 	if(btn == Button::Joystick && action == ButtonInput::Action::Release){
 		transition([]() {
 			return std::make_unique<SettingsScreen>();
@@ -104,5 +112,11 @@ void PairingScreen::handleButtonEvent(const Button btn, const ButtonInput::Actio
 }
 
 void PairingScreen::loop(){
+	if(chordStartTime != 0 && millis() - chordStartTime >= SettingsChordMs){
+		chordStartTime = 0;
+		transition([]() {
+			return std::make_unique<SettingsScreen>();
+		});
+	}
 
 }

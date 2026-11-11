@@ -24,6 +24,12 @@ private:
 	void buildSettingsHint();
 
 	void handleButtonEvent(Button btn, ButtonInput::Action action);
+
+	// Override + Shut Up held together also opens Settings here (same chord as the home screen)
+	static constexpr uint64_t SettingsChordMs = 800;
+	bool overrideDown = false;
+	bool shutUpDown = false;
+	uint64_t chordStartTime = 0;
 };
 
 

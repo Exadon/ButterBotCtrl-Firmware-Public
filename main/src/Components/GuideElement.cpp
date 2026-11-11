@@ -9,6 +9,7 @@ static constexpr const char* Lines[] = {
 		"Summon: Press to listen, hold to summon",
 		"Joystick press: Menu",
 		"In menu: Shut up selects, Override goes back",
+		"Hold Override + Shut up: Settings",
 };
 
 GuideElement::GuideElement(lv_obj_t* parent) : LVObject(parent){

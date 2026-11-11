@@ -148,7 +148,11 @@ void HomeScreen::handleButtonEvent(const Button btn, const ButtonInput::Action a
 			return;
 		}
 		if(action == ButtonInput::Action::Press){
-			clearActions();
+			if(btn == Button::ManualOverride && actionElement->inFolder()){
+				actionElement->back(); // up one level: back to the folder list
+			}else{
+				clearActions();
+			}
 			actionDismissBtn = btn;
 		}
 		return;
@@ -157,6 +161,10 @@ void HomeScreen::handleButtonEvent(const Button btn, const ButtonInput::Action a
 	// The dismissing button's release must not act either
 	if(btn == actionDismissBtn && action == ButtonInput::Action::Release){
 		actionDismissBtn = Button::COUNT;
+		return;
+	}
+
+	if(handleSettingsChord(btn, action)){
 		return;
 	}
 
@@ -173,9 +181,7 @@ void HomeScreen::handleButtonEvent(const Button btn, const ButtonInput::Action a
 	}
 
 	if(action == ButtonInput::Action::Press){
-		if(btn == Button::ShutUp){
-			com->sendCommand(Ctrl::Command::ShutUp);
-		} else if(btn == Button::Summon){
+		if(btn == Button::Summon){
 			// Summon press takes over the short-press override hint
 			if(overrideHintShownAt != 0){
 				clearPopupFor(Button::ManualOverride);
@@ -197,6 +203,9 @@ void HomeScreen::handleButtonEvent(const Button btn, const ButtonInput::Action a
 
 	if(btn == Button::Poke){
 		com->sendCommand(Ctrl::Command::Poke);
+	} else if(btn == Button::ShutUp){
+		// On release (not press) so Override + Shut Up can open Settings without muting the robot
+		com->sendCommand(Ctrl::Command::ShutUp);
 	} else if(btn == Button::Summon){
 		if(summonPressTime != 0 && millis() - summonPressTime < SummonShortPressMaxMs && listenSendCount < MaxListenSends){
 			com->sendCommand(Ctrl::Command::Listen);
@@ -257,6 +266,15 @@ void HomeScreen::loop(){
 	if(summonHoldEnabled && summonPressTime != 0 && millis() - summonPressTime >= SummonLongPressMinMs){
 		com->sendCommand(Ctrl::Command::Summon);
 		summonPressTime = 0;
+	}
+
+	if(chordStartTime != 0 && millis() - chordStartTime >= SettingsChordMs){
+		chordStartTime = 0;
+		clearPopup();
+		transition([]() {
+			return std::make_unique<SettingsScreen>();
+		});
+		return;
 	}
 
 	if(overridePressTime != 0 && millis() - overridePressTime >= OverrideHoldMinMs){
@@ -678,16 +696,11 @@ void HomeScreen::showActions(){
 	summonPressTime = 0;
 	overridePressTime = 0;
 
-	actionElement = new ActionElement(*this, inputGroup, [this]() {
-		// SETTINGS entry; the list is cleaned up by the screen transition
-		transition([]() {
-			return std::make_unique<SettingsScreen>();
-		});
-	}, [this](const BB::Action::Scenario scenario, const ScenarioData data) {
+	actionElement = new ActionElement(*this, inputGroup, [this](const BB::Action::Scenario scenario, const ScenarioData data) {
 		com->sendScenario(scenario, data);
 		// Deleting the list mid-event-dispatch is unsafe; close it on the next loop() tick
 		actionsClosePending = true;
-	}, lastActionIndex);
+	}, lastActionState);
 
 	lv_obj_set_pos(*actionElement, 0, 8); // right below the TopBar
 	lv_obj_move_foreground(*actionElement);
@@ -697,11 +710,45 @@ void HomeScreen::showActions(){
 	lv_indev_wait_release(InputLVGL::getInstance()->getIndev());
 }
 
+bool HomeScreen::handleSettingsChord(const Button btn, const ButtonInput::Action action){
+	if(btn != Button::ManualOverride && btn != Button::ShutUp){
+		return false;
+	}
+
+	const bool down = action == ButtonInput::Action::Press;
+	(btn == Button::ManualOverride ? overrideDown : shutUpDown) = down;
+
+	if(down && overrideDown && shutUpDown && !chordUsed){
+		// Both held: cancel the Override hold-for-RC and start the Settings hold instead
+		chordUsed = true;
+		overridePressTime = 0;
+		overrideHintShownAt = 0;
+		clearPopup();
+		chordStartTime = millis();
+		showPopup(new HoldPopupWindow(*this, "Settings", SettingsChordMs), Button::ManualOverride);
+		return true;
+	}
+
+	if(!chordUsed){
+		return false; // a normal press/release of one of the two buttons
+	}
+
+	// After a chord started, both buttons are swallowed until both are released
+	if(!down && chordStartTime != 0){
+		chordStartTime = 0; // let go too early: cancel
+		clearPopup();
+	}
+	if(!overrideDown && !shutUpDown){
+		chordUsed = false;
+	}
+	return true;
+}
+
 void HomeScreen::clearActions(){
 	actionsClosePending = false;
 	if(actionElement == nullptr) return;
 
-	lastActionIndex = actionElement->getSelectedIndex();
+	lastActionState = actionElement->getState();
 	delete actionElement; // lv_obj deletion auto-removes the buttons from inputGroup
 	actionElement = nullptr;
 }

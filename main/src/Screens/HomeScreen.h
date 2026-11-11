@@ -105,8 +105,18 @@ private:
 	// A scenario selection closes the list, deferred to loop() because the callback fires
 	// mid-event-dispatch (deleting the list there would free the button being clicked)
 	bool actionsClosePending = false;
-	// Focused entry when the list was last closed
-	uint16_t lastActionIndex = 0;
+	// Folder + focused entry when the list was last closed
+	ActionListState lastActionState{};
+
+	// Override + Shut Up held together for SettingsChordMs opens Settings. While a chord is in progress
+	// (or until both buttons are released after one) the two buttons do nothing else. Shut Up's mute moved
+	// from press to release so starting a chord with it doesn't mute the robot first.
+	static constexpr uint64_t SettingsChordMs = 800;
+	bool overrideDown = false;
+	bool shutUpDown = false;
+	bool chordUsed = false;
+	uint64_t chordStartTime = 0;
+	bool handleSettingsChord(Button btn, ButtonInput::Action action);
 
 	void loop() override;
 
