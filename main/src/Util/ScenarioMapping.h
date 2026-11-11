@@ -59,6 +59,7 @@ constexpr std::pair<const char*, Action> ScenarioNameMap[] = {
 	{ "Remember this face", { BB::Action::Scenario::FaceDetect, FaceScenarioData{ FaceScenarioData::Phase::Remember } } },
 	{ "Forget Owner", { BB::Action::Scenario::FaceDetectForget, FaceScenarioData{ FaceScenarioData::Phase::Forget } } },
 	{ "Dance", { BB::Action::Scenario::Dance, {} } },
+	{ "Open a Portal", { BB::Action::Scenario::OpenPortal, {} } },
 	{ "Activity Mode", { BB::Action::Scenario::SettingsActivity, ActivityScenarioData{ ActivityScenarioData::Level::None } } },
 	{ "Activity Off", { BB::Action::Scenario::SettingsActivity, ActivityScenarioData{ ActivityScenarioData::Level::Off } } },
 	{ "Activity Chill", { BB::Action::Scenario::SettingsActivity, ActivityScenarioData{ ActivityScenarioData::Level::Chill } } },

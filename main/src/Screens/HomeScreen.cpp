@@ -19,6 +19,8 @@
 #include "Components/HomeWindows/PickUpWindow.h"
 #include "Components/HomeWindows/ShakeWindow.h"
 #include "Components/HomeWindows/JokeWindow.h"
+#include "Components/HomeWindows/ChatWindow.h"
+#include "Components/HomeWindows/PortalWindow.h"
 #include "Components/HomeWindows/FactWindow.h"
 #include "Components/HomeWindows/PassTheButterWindow.h"
 #include "Components/HomeWindows/YouPassButterWindow.h"
@@ -421,6 +423,12 @@ HomeWindow* HomeScreen::createActionWindow(const BB::State state, const BB::Acti
 				break;
 			case BB::Action::Scenario::CurrentTime:
 				newWin = initActionWindow<CurrentTimeWindow, CurrentTimeData>(windowContainer, data);
+				break;
+			case BB::Action::Scenario::Chat:
+				newWin = initActionWindow<ChatWindow, ChatData>(windowContainer, data);
+				break;
+			case BB::Action::Scenario::OpenPortal:
+				newWin = initActionWindow<PortalWindow, OpenPortalData>(windowContainer, data);
 				break;
 			case BB::Action::Scenario::Dance:
 				newWin = initActionWindow<DanceWindow, DanceData>(windowContainer, data);
