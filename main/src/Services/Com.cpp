@@ -107,6 +107,13 @@ void Com::tick(float deltaTime) noexcept{
 	BB data{};
 	memcpy(&data, buf.data(), sizeof(BB));
 
+	// A truncated notification (shorter than its header claims) used to be copied anyway, reading
+	// past the end of the buffer. Drop it instead.
+	if(buf.size() < sizeof(BB) + data.dataSize){
+		ESP_LOGW(TAG, "Dropping truncated notif (%zu bytes, header says %zu)", buf.size(), sizeof(BB) + data.dataSize);
+		return;
+	}
+
 	if(buf.size() > sizeof(BB) + data.dataSize){
 		ESP_LOGW(TAG, "Received notif data bigger than expected");
 	}

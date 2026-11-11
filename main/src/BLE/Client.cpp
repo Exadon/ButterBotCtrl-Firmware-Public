@@ -47,7 +47,7 @@ esp_gatt_if_t BLE::Client::getIF(){
 void BLE::Client::ble_GATTC_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t* param){
 	/* 0xff, not specify a certain gatt_if, need to call every profile cb function */
 	if(gattc_if == 0xff){
-		printf("GATTC CB interface 0xff - event %d\n", event);
+		ESP_LOGD(TAG, "GATTC CB interface 0xff - event %d", event);
 	}
 
 	if(event == ESP_GATTC_REG_EVT){

@@ -305,7 +305,7 @@ void HomeScreen::handleDataEvent(const BB::State state, const BB::Action action,
 				ESP_LOGE(TAG, "OnData Window creation failed");
 				return;
 			}
-			insertWindow(window, state == BB::State::Listen);
+			insertWindow(window, state == BB::State::Listen, data.size());
 		}
 
 		return;
@@ -350,6 +350,11 @@ void HomeScreen::handleDataEvent(const BB::State state, const BB::Action action,
 			// WhatsPlayingData is variable-length (std::string fields); deserialize into a real object
 			const WhatsPlayingData wp = WhatsPlayingData::deserialize(data.data(), data.size());
 			activeWindow->onData(&wp);
+		} else if(data.empty() || data.size() != activeWindowDataSize){
+			// Windows cast this straight to their data struct, so an empty or wrong-sized update
+			// would dereference null or read past the buffer. Ignore it.
+			ESP_LOGW(TAG, "Ignoring window update with %zu bytes (expected %zu)", data.size(), activeWindowDataSize);
+			return;
 		} else{
 			const auto params = (BBData*)data.data();
 			activeWindow->onData(params);
@@ -580,7 +585,8 @@ HomeWindow* HomeScreen::createActionWindow(const BB::State state, const BB::Acti
 	return newWin;
 }
 
-void HomeScreen::insertWindow(HomeWindow* window, const bool isListen){
+void HomeScreen::insertWindow(HomeWindow* window, const bool isListen, size_t dataSize){
+	activeWindowDataSize = dataSize;
 	// A new window replaces the short-press override hint
 	if(overrideHintShownAt != 0){
 		clearPopupFor(Button::ManualOverride);
@@ -745,7 +751,7 @@ void HomeScreen::processQueue(){
 		ESP_LOGE(TAG, "OnData Window creation failed");
 		return;
 	}
-	insertWindow(window, nextEvent.state == BB::State::Listen);
+	insertWindow(window, nextEvent.state == BB::State::Listen, nextEvent.data.size());
 	activeWindowShownAt = millis();
 	activeWindowUpdatedAt = activeWindowShownAt;
 }
