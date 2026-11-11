@@ -51,6 +51,9 @@ protected:
 		bootloader_random_disable();
 
 		esp_log_level_set("*", ESP_LOG_WARN);
+		// Pairing is low-volume and hard to debug blind: keep the BLE connection story on the console.
+		esp_log_level_set("BLE::GAP", ESP_LOG_INFO);
+		esp_log_level_set("BLE::Client", ESP_LOG_INFO);
 
 		// Stack overflow otherwise - increase Threaded/AsyncEntity stack size if logging is needed
 		esp_log_level_set("Com", ESP_LOG_NONE);
