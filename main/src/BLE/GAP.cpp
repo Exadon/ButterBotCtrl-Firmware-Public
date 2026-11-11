@@ -64,6 +64,10 @@ void BLE::GAP::disconnect(){
 	esp_ble_gap_disconnect(result.addr);
 }
 
+void BLE::GAP::connectionFailed(){
+	onConnEvent.broadcast(ConnEvent::Failed);
+}
+
 void BLE::GAP::setClient(Client* client){
 	this->client = client;
 }
@@ -158,7 +162,17 @@ void BLE::GAP::ble_GAP_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* 
 
 		case ESP_GAP_BLE_AUTH_CMPL_EVT:{
 			if(!param->ble_security.auth_cmpl.success){
-				ESP_LOGI(TAG, "fail reason = 0x%x", param->ble_security.auth_cmpl.fail_reason);
+				// Usually stale keys: the robot was reflashed or restored (its NVS - and the bond - replaced) but
+				// we still hold the old bond, so every reconnect fails the same way. The controller only ever bonds
+				// with the robot, so forget it and drop the link; the retry (see Client::close) pairs fresh with
+				// the static passkey, no user action needed. Previously this just logged and the controller sat on
+				// the pairing screen forever.
+				esp_bd_addr_t addr;
+				memcpy(addr, param->ble_security.auth_cmpl.bd_addr, ESP_BD_ADDR_LEN);
+				ESP_LOGW(TAG, "Pairing failed (reason 0x%x) - forgetting the stale bond and retrying",
+				         param->ble_security.auth_cmpl.fail_reason);
+				esp_ble_remove_bond_device(addr);
+				esp_ble_gap_disconnect(addr);
 				break;
 			}
 			ESP_LOGI(TAG, "paired");

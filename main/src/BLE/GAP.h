@@ -23,6 +23,9 @@ public:
 	void connect();
 	void disconnect();
 
+	/** Called by Client when a link drops before the connection completed; tells listeners to retry. */
+	void connectionFailed();
+
 	enum class ConnEvent { Connected, Failed };
 	DECLARE_EVENT(OnConnEvent, GAP, ConnEvent);
 	OnConnEvent onConnEvent{ this };

@@ -235,7 +235,13 @@ void BLE::Client::passToChar(esp_gattc_cb_event_t event, esp_ble_gattc_cb_param_
 }
 
 void BLE::Client::close(){
+	// A link that drops before the connection completed (e.g. pairing failed) is a failed attempt. Report it
+	// so the pairing screen retries; before, the state just went Idle and nothing ever connected again.
+	const bool wasConnecting = gap->state == GAP::Connecting;
 	gap->state = GAP::Idle;
+	if(wasConnecting){
+		gap->connectionFailed();
+	}
 
 	for(auto& svc : services){
 		if(svc == nullptr) {
