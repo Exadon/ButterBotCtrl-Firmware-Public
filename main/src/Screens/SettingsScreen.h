@@ -1,6 +1,7 @@
 #ifndef BUTTERBOTCTRL_FIRMWARE_SETTINGSSCREEN_H
 #define BUTTERBOTCTRL_FIRMWARE_SETTINGSSCREEN_H
 
+#include "Util/ButtonGate.h"
 #include <LV_Interface/LVScreen.h>
 #include <Services/ButtonInput.h>
 
@@ -34,6 +35,7 @@ private:
 	void loop() override;
 
 	void handleButtonEvent(Button btn, ButtonInput::Action action);
+	ButtonGate buttonGate; // ignores releases of buttons pressed before this screen opened
 	void handleDataEvent(BB::State state, BB::Action action, const std::vector<uint8_t>& data);
 	void buildUI();
 	void switchTheme(const Theme &newTheme);

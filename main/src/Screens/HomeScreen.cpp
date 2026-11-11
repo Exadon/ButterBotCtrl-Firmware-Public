@@ -135,6 +135,10 @@ HomeScreen::~HomeScreen(){
 }
 
 void HomeScreen::handleButtonEvent(const Button btn, const ButtonInput::Action action){
+	if(!buttonGate.accept(btn, action)){
+		return;
+	}
+
 	// All input is disabled while waiting for the RC feed to start
 	if(rcWaitStartTime != 0){
 		return;

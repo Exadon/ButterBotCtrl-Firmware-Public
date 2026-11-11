@@ -1,6 +1,7 @@
 #ifndef BUTTERBOTCTRL_FIRMWARE_PAIRINGSCREEN_H
 #define BUTTERBOTCTRL_FIRMWARE_PAIRINGSCREEN_H
 
+#include "Util/ButtonGate.h"
 #include <LV_Interface/LVScreen.h>
 #include <Services/ButtonInput.h>
 #include "Enums.hpp"
@@ -24,6 +25,7 @@ private:
 	void buildSettingsHint();
 
 	void handleButtonEvent(Button btn, ButtonInput::Action action);
+	ButtonGate buttonGate; // ignores releases of buttons pressed before this screen opened
 
 	// Override + Shut Up held together also opens Settings here (same chord as the home screen)
 	static constexpr uint64_t SettingsChordMs = 800;

@@ -1,6 +1,7 @@
 #ifndef BUTTERBOTCTRL_FIRMWARE_HOMESCREEN_H
 #define BUTTERBOTCTRL_FIRMWARE_HOMESCREEN_H
 
+#include "Util/ButtonGate.h"
 #include <queue>
 #include <BBData.h>
 #include <LV_Interface/LVScreen.h>
@@ -121,6 +122,7 @@ private:
 	void loop() override;
 
 	void handleButtonEvent(Button btn, ButtonInput::Action action);
+	ButtonGate buttonGate; // ignores releases of buttons pressed before this screen opened
 	void handleDataEvent(BB::State state, BB::Action action, const std::vector<uint8_t>& data);
 	void ledDataBlink(const std::vector<uint8_t>& data);
 	void startRC();

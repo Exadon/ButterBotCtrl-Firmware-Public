@@ -97,6 +97,10 @@ void PairingScreen::buildSettingsHint(){
 }
 
 void PairingScreen::handleButtonEvent(const Button btn, const ButtonInput::Action action){
+	if(!buttonGate.accept(btn, action)){
+		return;
+	}
+
 	if(btn == Button::ManualOverride || btn == Button::ShutUp){
 		const bool down = action == ButtonInput::Action::Press;
 		(btn == Button::ManualOverride ? overrideDown : shutUpDown) = down;
