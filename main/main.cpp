@@ -212,7 +212,9 @@ protected:
 
 		FSLVGL* fslvgl = registerService<FSLVGL>('S', themeService->getCache());
 
-		registerService<JoystickInputLVGL>(joystick, buttonInput, Enum<int>(Button::Joystick));
+		// Menus select with Shut Up (LVGL ENTER), not the joystick press: pressing a stick always tilts it a
+		// little, which nudged the selection or changed a value right before the press registered.
+		registerService<JoystickInputLVGL>(joystick, buttonInput, Enum<int>(Button::ShutUp));
 
 		lvgl->startScreen([]() {
 			return std::make_unique<IntroScreen>();

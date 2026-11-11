@@ -72,7 +72,9 @@ void SettingsScreen::handleDataEvent(const BB::State state, const BB::Action act
 }
 
 void SettingsScreen::handleButtonEvent(const Button btn, const ButtonInput::Action action){
-	if (btn == Button::Joystick && action == ButtonInput::Action::Release){
+	// Manual Override = back, Shut Up = done; both save and leave. The joystick press no longer exits:
+	// pressing the stick tilted it and changed the highlighted value on the way out.
+	if((btn == Button::ManualOverride || btn == Button::ShutUp) && action == ButtonInput::Action::Release){
 		// Save current settings
 		settings->store();
 

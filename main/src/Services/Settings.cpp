@@ -96,14 +96,4 @@ void Settings::load(){
 			settingsStruct.activityMode = SettingsStruct().activityMode;
 			break;
 	}
-
-	switch(settingsStruct.driveSpeed){
-		case DriveSpeed::Slow:
-		case DriveSpeed::Normal:
-		case DriveSpeed::Fast:
-			break;
-		default:
-			settingsStruct.driveSpeed = SettingsStruct().driveSpeed;
-			break;
-	}
 }

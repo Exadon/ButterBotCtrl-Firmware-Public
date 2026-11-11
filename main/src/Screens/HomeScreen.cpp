@@ -138,10 +138,14 @@ void HomeScreen::handleButtonEvent(const Button btn, const ButtonInput::Action a
 		return;
 	}
 
-	// Action list is modal: the joystick is routed through the LVGL keypad indev
-	// (up/down/enter), any other button press dismisses the list and is swallowed
+	// Action list is modal. The joystick moves the highlight (LVGL keypad indev), Shut Up selects (it's the
+	// indev's ENTER button, handled by LVGL), the joystick press does nothing, and any other button
+	// (Manual Override = back) closes the list; that press and its release are swallowed.
 	if(actionElement != nullptr){
-		if(btn != Button::Joystick && action == ButtonInput::Action::Press){
+		if(btn == Button::ShutUp || btn == Button::Joystick){
+			return;
+		}
+		if(action == ButtonInput::Action::Press){
 			clearActions();
 			actionDismissBtn = btn;
 		}

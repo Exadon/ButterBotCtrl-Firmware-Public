@@ -28,7 +28,7 @@ private:
 
 	LVStyle labelDefaultStyle;
 
-	static constexpr const char* JoystickText = "Press joystick to return";
+	static constexpr const char* JoystickText = "Override or Shut up: back";
 	static constexpr const char* FccText = "FCC ID: 2AVZ4-BUTTER-BOT";
 
 	void loop() override;

@@ -7,7 +7,8 @@ static constexpr const char* Lines[] = {
 		"Poke: Existential dread",
 		"Shut up: (Un)Mute",
 		"Summon: Press to listen, hold to summon",
-		"Joystick press: Actions",
+		"Joystick press: Menu",
+		"In menu: Shut up selects, Override goes back",
 };
 
 GuideElement::GuideElement(lv_obj_t* parent) : LVObject(parent){
