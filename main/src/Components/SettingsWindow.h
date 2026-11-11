@@ -15,6 +15,7 @@
 #include "Components/SettingsWindow/FrontSensorSelector.h"
 #include "Components/SettingsWindow/BottomSensorSelector.h"
 #include "Components/SettingsWindow/ActivitySelector.h"
+#include "Components/SettingsWindow/DriveSpeedSelector.h"
 
 class SettingsWindow : public LVObject {
 public:
@@ -43,6 +44,7 @@ private:
 	FrontSensorSelector* frontSensorSelector;
 	BottomSensorSelector* bottomSensorSelector;
 	ActivitySelector* activitySelector;
+	DriveSpeedSelector* speedSelector;
 
 	lv_obj_t* innerContent;
 	LVStyle labelDefaultStyle;
@@ -57,7 +59,7 @@ private:
 	lv_obj_t* corner;
 
 	int32_t currentFocusIndex = 0;
-	static constexpr int32_t WidgetsNum = 6;
+	static constexpr int32_t WidgetsNum = 7;
 	static constexpr int32_t ScrollMargin = 4;
 
 	static constexpr int32_t WindowWidth = 120;

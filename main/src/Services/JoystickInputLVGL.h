@@ -18,7 +18,19 @@ public:
 	void postInitProperties() noexcept override;
 
 private:
-	static constexpr int DirThreshold = 40;
+	/**
+	 * Hysteresis: a direction is pressed past PressThreshold and stays pressed until its axis drops below
+	 * ReleaseThreshold. The stock code used one threshold (40) for both, so a stick resting near it flickered
+	 * press/release and fired extra key events (menus skipping or moving twice).
+	 */
+	static constexpr int PressThreshold = 50;
+	static constexpr int ReleaseThreshold = 25;
+
+	/** Direction latched while the stick is held; 0 = none. Picked from the dominant axis and kept until
+	 *  released, so a diagonal push no longer flip-flops between e.g. RIGHT and UP. */
+	lv_key_t heldDir = static_cast<lv_key_t>(0);
+
+	lv_key_t readDirection();
 
 	Joystick* joystick;
 	ButtonInput* bi;

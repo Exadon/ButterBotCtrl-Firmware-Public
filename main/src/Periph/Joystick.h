@@ -1,6 +1,7 @@
 #ifndef BB_CTRL_CONTROLLER_JOYSTICK_H
 #define BB_CTRL_CONTROLLER_JOYSTICK_H
 
+#include <algorithm>
 #include <atomic>
 #include <hal/gpio_types.h>
 #include <Entity/AsyncEntity.h>
@@ -25,6 +26,33 @@ private:
 	static constexpr int DeadZone = 15; // ±15 points around center
 	static constexpr float MaxMapping = 65.0f; // After which points around center is it considered to be at 100%
 	static constexpr int RawCenter = 2048;
+	static constexpr int RawMax = 4095;
+
+	/**
+	 * Centre calibration. The stock code assumed the stick rests at exactly 2048, but real sticks rest
+	 * off-centre; a resting position near the dead-zone edge then flickers in and out of "pushed", which
+	 * makes menus jump and the robot creep. At boot (stick untouched) we average the first samples per axis
+	 * and use that as the centre - unless they're noisy or implausibly far off, in which case the stick is
+	 * probably being held, and we keep 2048.
+	 */
+	static constexpr int CalibSamples = 16;            // ~320 ms at 20 ms per sample
+	static constexpr float MaxCenterOffset = 400.0f;   // raw counts (~10% of range)
+	static constexpr float MaxCalibSpread = 80.0f;     // raw counts between min and max while calibrating
+
+	struct AxisCalib {
+		float sum = 0, min = 1e9f, max = -1e9f;
+		float center = RawCenter;
+
+		void add(float raw){
+			sum += raw;
+			min = std::min(min, raw);
+			max = std::max(max, raw);
+		}
+	};
+
+	AxisCalib hCalib, vCalib;
+	int calibCount = 0;
+	bool calibrated = false;
 
 	StrongObjectPtr<EMA_ADCFilter> hEMAFilter;
 	StrongObjectPtr<EMA_ADCFilter> vEMAFilter;
@@ -34,7 +62,8 @@ private:
 	std::atomic<int8_t> hValue{ 0 };
 	std::atomic<int8_t> vValue{ 0 };
 
-	static int8_t mapSample(float raw) noexcept;
+	void finishCalibration();
+	static int8_t mapSample(float raw, float center) noexcept;
 };
 
 #endif //BB_CTRL_CONTROLLER_JOYSTICK_H

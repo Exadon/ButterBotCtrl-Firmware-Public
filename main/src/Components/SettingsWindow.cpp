@@ -19,6 +19,7 @@ SettingsWindow::~SettingsWindow(){
 	lv_anim_delete(frontSensorSelector, nullptr);
 	lv_anim_delete(bottomSensorSelector, nullptr);
 	lv_anim_delete(activitySelector, nullptr);
+	lv_anim_delete(speedSelector, nullptr);
 }
 
 void SettingsWindow::buildUI(lv_obj_t* parent){
@@ -105,12 +106,14 @@ void SettingsWindow::buildUI(lv_obj_t* parent){
 		lv_anim_delete(frontSensorSelector->widgetLabel, nullptr);
 		lv_anim_delete(bottomSensorSelector->widgetLabel, nullptr);
 		lv_anim_delete(activitySelector->widgetLabel, nullptr);
+		lv_anim_delete(speedSelector->widgetLabel, nullptr);
 		lv_obj_set_style_opa(themeSelector->widgetLabel, LV_OPA_COVER, 0);
 		lv_obj_set_style_opa(sleepSelector->widgetLabel, LV_OPA_COVER, 0);
 		lv_obj_set_style_opa(brightnessSlider->widgetLabel, LV_OPA_COVER, 0);
 		lv_obj_set_style_opa(frontSensorSelector->widgetLabel, LV_OPA_COVER, 0);
 		lv_obj_set_style_opa(bottomSensorSelector->widgetLabel, LV_OPA_COVER, 0);
 		lv_obj_set_style_opa(activitySelector->widgetLabel, LV_OPA_COVER, 0);
+		lv_obj_set_style_opa(speedSelector->widgetLabel, LV_OPA_COVER, 0);
 
 		if(key == LV_KEY_DOWN){
 			currentFocusIndex = (currentFocusIndex + 1) % WidgetsNum;
@@ -128,8 +131,10 @@ void SettingsWindow::buildUI(lv_obj_t* parent){
 			lv_anim_set_var(&blinkAnim, frontSensorSelector->widgetLabel);
 		} else if(currentFocusIndex == 4){
 			lv_anim_set_var(&blinkAnim, bottomSensorSelector->widgetLabel);
-		} else{
+		} else if(currentFocusIndex == 5){
 			lv_anim_set_var(&blinkAnim, activitySelector->widgetLabel);
+		} else{
+			lv_anim_set_var(&blinkAnim, speedSelector->widgetLabel);
 		}
 		lv_anim_start(&blinkAnim);
 
@@ -207,8 +212,18 @@ void SettingsWindow::buildUI(lv_obj_t* parent){
 	};
 	activitySelector = new ActivitySelector(innerContent, initSet.activityMode, switchCb, activityValCb);
 	lv_obj_set_pos(*activitySelector, 2, 103);
-	lv_obj_set_style_margin_bottom(*activitySelector, 4, 0);
 	lv_group_add_obj(inputGroup, *activitySelector);
+
+	// RC drive speed (fork setting, controller-only: scales the joystick in RC mode)
+	const std::function<void(DriveSpeed)> speedValCb = [this](const DriveSpeed speed) {
+		SettingsStruct currentSet = settings->get();
+		currentSet.driveSpeed = speed;
+		settings->set(currentSet);
+	};
+	speedSelector = new DriveSpeedSelector(innerContent, initSet.driveSpeed, switchCb, speedValCb);
+	lv_obj_set_pos(*speedSelector, 2, 125);
+	lv_obj_set_style_margin_bottom(*speedSelector, 4, 0);
+	lv_group_add_obj(inputGroup, *speedSelector);
 
 	lv_group_set_editing(inputGroup, true);
 

@@ -7,6 +7,8 @@
 #include <LV_Interface/LVGL.h>
 #include "HomeScreen.h"
 #include "PairingScreen.h"
+#include "Services/Settings.h"
+#include <cmath>
 
 RCScreen::RCScreen(){
 	const Application* app = Application::getApp();
@@ -82,12 +84,22 @@ void RCScreen::loop(){
 		return;
 	}
 
-	DriveData data{ .joystickX = joystick->getHorizontal(), .joystickY = joystick->getVertical() };
+	// Drive speed setting: scale the stick before sending (works with stock robot firmware too)
+	float scale = 1.0f;
+	if(const Settings* settings = app->getService<Settings>()){
+		scale = driveSpeedScale(settings->get().driveSpeed);
+	}
+	DriveData data{
+		.joystickX = static_cast<int8_t>(std::lround(joystick->getHorizontal() * scale)),
+		.joystickY = static_cast<int8_t>(std::lround(joystick->getVertical() * scale))
+	};
 	if(data.joystickX == lastData.joystickX && data.joystickY == lastData.joystickY){
 		return;
 	}
 
-	if(millis() - lastDataSend < 100){
+	// Rate-limit movement updates, but never delay a stop: letting go of the stick halts the robot at once
+	const bool isStop = data.joystickX == 0 && data.joystickY == 0;
+	if(!isStop && millis() - lastDataSend < 100){
 		return;
 	}
 
