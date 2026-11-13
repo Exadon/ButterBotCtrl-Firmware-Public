@@ -32,6 +32,13 @@ this **controller firmware**, and **Dimension Hopper**, the Windows app that upd
 A status line every 5 seconds (battery, link, firmware, why it last restarted), a live diagnostics stream for the
 *Diagnostics* tab, pairing logs, and a `forget` command.
 
+## Problems and ideas
+
+Issues for all three pieces are collected in one place: the
+[robot repository's issues](https://github.com/Exadon/ButterBot-Firmware-Public/issues). Its
+[troubleshooting guide](https://github.com/Exadon/ButterBot-Firmware-Public/blob/master/tools/updater/README.md#troubleshooting)
+explains what the robot's messages mean.
+
 ## Installing a release
 
 Every `v*` tag builds a single merged image on GitHub Actions and attaches it to the [releases page](../../releases).
