@@ -1,21 +1,43 @@
-# ButterBot Controller Firmware
+# ButterBot Controller Firmware (community fork)
 
-> **This is a community fork** of [CircuitMess/ButterBotCtrl-Firmware-Public](https://github.com/CircuitMess/ButterBotCtrl-Firmware-Public),
-> the companion to the robot fork [Exadon/ButterBot-Firmware-Public](https://github.com/Exadon/ButterBot-Firmware-Public).
+> A community fork of [CircuitMess/ButterBotCtrl-Firmware-Public](https://github.com/CircuitMess/ButterBotCtrl-Firmware-Public).
 > It works with both the stock and the forked robot firmware.
 
-## What's different in this fork
+This is one of three pieces that work together - the **robot firmware**
+([Exadon/ButterBot-Firmware-Public](https://github.com/Exadon/ButterBot-Firmware-Public), which also has the overview),
+this **controller firmware**, and **Dimension Hopper**, the Windows app that updates and sets up both
+([tools/updater](https://github.com/Exadon/ButterBot-Firmware-Public/tree/master/tools/updater) in the robot repository).
 
-- **No crash on truncated robot messages:** a BLE notification shorter than its header claims used to be read past its end. It's now dropped.
-- **No crash on bad window updates:** live updates to an open window are only applied if they match the size the window was created with. Before, an empty update dereferenced null.
-- **Settings survive firmware updates.** They used to reset to defaults whenever the settings layout changed.
-- A leftover debug `printf` on every BLE event is now a debug log.
+## What the fork adds
+
+### AI conversations
+- Shows what the robot is doing while it talks to its AI brain: *Listening… reluctantly*, *Heard you. Unfortunately.*
+  and an animated *Consulting my brain…* while the PC thinks.
+- Copes with screens a newer robot might send that it doesn't know (shows "..." instead of crashing).
+
+### Driving and menus
+- Joystick centre calibration and hysteresis, so the stick doesn't drift or flicker between menu items.
+- An RC drive speed setting; an exit hint in RC mode, and pressing exits.
+- Push the stick to open the menu; *Shut Up* selects and *Manual Override* goes back; *Settings* is back on top.
+- Screens ignore the release of a button that was pressed before they opened (no more accidental selections).
+- Action list folders, chat and portal windows, and *Open a Portal* in the menu, matching the robot fork's new commands.
+
+### Sturdier
+- Pairing recovers from a failed attempt instead of getting stuck; *Forget pairing* from Dimension Hopper.
+- No crash on a truncated message from the robot or on a mismatched window update.
+- Settings survive firmware updates.
+- A fork badge on the boot screen, so you can tell which firmware is running.
+
+### USB console (used by Dimension Hopper)
+A status line every 5 seconds (battery, link, firmware, why it last restarted), a live diagnostics stream for the
+*Diagnostics* tab, pairing logs, and a `forget` command.
 
 ## Installing a release
 
 Every `v*` tag builds a single merged image on GitHub Actions and attaches it to the [releases page](../../releases).
-The easiest way to install it is **Dimension Hopper** (in the robot fork's `tools/updater`): in the Controller slot,
-choose *Latest GitHub release* and pick `Exadon/ButterBotCtrl-Firmware-Public`.
+The easiest way to install it is **Dimension Hopper** (download `DimensionHopper.exe` from the
+[robot fork's releases](https://github.com/Exadon/ButterBot-Firmware-Public/releases)): in the Controller slot, choose
+*Latest GitHub release* and pick `Exadon/ButterBotCtrl-Firmware-Public`. Updates keep your pairing and settings.
 
 ## Building
 
