@@ -8,6 +8,10 @@ This is one of three pieces that work together - the **robot firmware**
 this **controller firmware**, and **Dimension Hopper**, the Windows app that updates and sets up both
 ([tools/updater](https://github.com/Exadon/ButterBot-Firmware-Public/tree/master/tools/updater) in the robot repository).
 
+[![The controller's features in action](https://img.youtube.com/vi/ISTigiyBVUY/hqdefault.jpg)](https://www.youtube.com/shorts/ISTigiyBVUY)
+
+*The controller in action (click to watch). ButterBot's AI mode: [video](https://www.youtube.com/shorts/QA3H6BbMbJw).*
+
 ## What the fork adds
 
 ### AI conversations
