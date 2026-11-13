@@ -24,10 +24,10 @@ jobs:
         with:
           esp_idf_version: v5.5.3
           target: esp32s3
-          # merge-bin writes build/ButterBotCtrl-merged.bin: bootloader, partitions, app and SPIFFS,
-          # one file flashed at 0x0 (same layout as the official CircuitMess releases)
-          # scripts/ci_merge.sh merges the build into build/ButterBotCtrl-merged.bin (see the script for why)
-          command: idf.py build && bash scripts/ci_merge.sh
+          # scripts/ci_build.sh pins the component manager (see the script for why), builds, checks that LVGL was
+          # configured from the committed sdkconfig, then merges bootloader, partitions, app and SPIFFS into
+          # build/ButterBotCtrl-merged.bin, one file flashed at 0x0 (same layout as the official releases)
+          command: bash scripts/ci_build.sh
 
       - name: Name the image
         id: name
