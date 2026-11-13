@@ -7,6 +7,9 @@
 #include <string>
 #include <Util/stdafx.h>
 #include <esp_app_desc.h>
+#include <esp_system.h>
+#include <esp_gap_ble_api.h>
+#include <vector>
 #include <cstdlib>
 #include <Core/EntryPoint.h>
 #include <Devices/Display.h>
@@ -279,6 +282,7 @@ private:
 				if(buf[i] == '\n' || buf[i] == '\r'){
 					if(line == "diag on") diagUntil = millis() + DiagHoldMs;
 					else if(line == "diag off") diagUntil = 0;
+					else if(line == "forget") forgetBonds();
 					line.clear();
 				}else if(line.size() < 32){
 					line += buf[i];
@@ -320,11 +324,43 @@ private:
 	void printStatus() const{
 		const Battery* battery = getService<Battery>();
 		const Com* com = getService<Com>();
-		printf("[BBSTAT] dev=ctrl fw=%s batt=%d link=%s up=%llu\n",
+		printf("[BBSTAT] dev=ctrl fw=%s batt=%d link=%s up=%llu reset=%s\n",
 		       esp_app_get_description()->version,
 		       battery != nullptr ? static_cast<int>(battery->getPerc()) : -1,
 		       com == nullptr ? "unknown" : (com->getStatus() == Com::ConnStatus::Connected ? "connected" : "disconnected"),
-		       static_cast<unsigned long long>(esp_timer_get_time() / 1000000));
+		       static_cast<unsigned long long>(esp_timer_get_time() / 1000000),
+		       resetReasonName());
+	}
+
+	// Fork: "forget" drops every Bluetooth bond, so the controller pairs from scratch with the next robot it finds.
+	static void forgetBonds(){
+		int num = esp_ble_get_bond_device_num();
+		int removed = 0;
+		if(num > 0){
+			std::vector<esp_ble_bond_dev_t> list(static_cast<size_t>(num));
+			if(esp_ble_get_bond_device_list(&num, list.data()) == ESP_OK){
+				for(int i = 0; i < num; ++i){
+					if(esp_ble_remove_bond_device(list[static_cast<size_t>(i)].bd_addr) == ESP_OK) removed++;
+				}
+			}
+		}
+		printf("[BBFORGET] dev=ctrl removed=%d\n", removed);
+	}
+
+	static const char* resetReasonName(){
+		switch(esp_reset_reason()){
+			case ESP_RST_POWERON: return "poweron";
+			case ESP_RST_SW: return "software";
+			case ESP_RST_PANIC: return "crash";
+			case ESP_RST_INT_WDT:
+			case ESP_RST_TASK_WDT:
+			case ESP_RST_WDT: return "watchdog";
+			case ESP_RST_BROWNOUT: return "brownout";
+			case ESP_RST_DEEPSLEEP: return "sleep";
+			case ESP_RST_EXT: return "external";
+			case ESP_RST_USB: return "usb";
+			default: return "other";
+		}
 	}
 
 	void onBatteryChange(const Battery::Level level){

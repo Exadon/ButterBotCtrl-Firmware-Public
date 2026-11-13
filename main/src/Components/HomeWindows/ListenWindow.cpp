@@ -8,6 +8,8 @@ static const std::map<ListenData::Phase, const char*> ListenSentences = {
 	{ ListenData::Phase::Listening, "Listening... reluctantly" },
 	{ ListenData::Phase::NotUnderstand, "Try... human language?" },
 	{ ListenData::Phase::Abort, "Silent... but resentful" },
+	{ ListenData::Phase::Heard, "Heard you. Unfortunately." },
+	{ ListenData::Phase::Thinking, "Consulting my brain..." },
 };
 
 ListenWindow::ListenWindow(lv_obj_t* parent, const ListenData* params) : HomeWindow(parent, TITLE){
@@ -17,9 +19,19 @@ ListenWindow::ListenWindow(lv_obj_t* parent, const ListenData* params) : HomeWin
 void ListenWindow::onData(const BBData* data){
 	const auto newData = *(const ListenData*)data;
 
-	// Clear and rebuild UI
+	// Clear and rebuild UI (cleaning deletes the GIF object too)
+	if(gif){
+		gif->stop();
+		gif = nullptr;
+	}
 	lv_obj_clean(innerContent);
 	buildUI(newData);
+}
+
+void ListenWindow::onDismiss(){
+	if(gif){
+		gif->stop();
+	}
 }
 
 void ListenWindow::loop(){
@@ -29,7 +41,8 @@ void ListenWindow::loop(){
 void ListenWindow::buildUI(const ListenData data){
 	// Sentence label
 	lv_obj_t* sentenceLabel = lv_label_create(innerContent);
-	lv_label_set_text(sentenceLabel, ListenSentences.at(data.phase));
+	const auto sentence = ListenSentences.find(data.phase); // a newer robot may send phases this build doesn't know
+	lv_label_set_text(sentenceLabel, sentence != ListenSentences.end() ? sentence->second : "...");
 	lv_label_set_long_mode(sentenceLabel, LV_LABEL_LONG_WRAP);
 	lv_obj_add_style(sentenceLabel, labelDefaultStyle, 0);
 
@@ -53,6 +66,21 @@ void ListenWindow::buildUI(const ListenData data){
 			lv_image_set_src(img, theme->getAsset(Asset::Mute));
 			lv_obj_move_to_index(img, 0);
 			lv_obj_set_size(sentenceLabel, 60, LV_SIZE_CONTENT);
+			break;
+		}
+		case ListenData::Phase::Heard: {
+			lv_obj_t* img = lv_image_create(innerContent);
+			lv_image_set_src(img, theme->getAsset(Asset::Listening));
+			lv_obj_move_to_index(img, 0);
+			lv_obj_set_size(sentenceLabel, 76, LV_SIZE_CONTENT);
+			break;
+		}
+		case ListenData::Phase::Thinking: {
+			gif = new LVGIF(innerContent, theme->getAsset(Asset::_8BallThinking));
+			gif->setLooping(LVGIF::LoopType::On);
+			gif->reset();
+			lv_obj_move_to_index(*gif, 0);
+			lv_obj_set_size(sentenceLabel, 76, LV_SIZE_CONTENT);
 			break;
 		}
 		default:
