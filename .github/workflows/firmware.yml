@@ -45,12 +45,8 @@ jobs:
           path: ${{ steps.name.outputs.file }}
           if-no-files-found: error
 
-      # Paused: the image built here (Linux) runs wrong on the controller - boot logo off-centre, home-screen battery
-      # icons missing - while the same commit built on Windows is fine (same code, sdkconfig and component versions;
-      # the CI binary is ~112 KB larger). Until that's understood, controller releases are built locally and uploaded
-      # by hand; this job still builds every push as a compile check and keeps the image as an artifact.
       - name: Publish release
-        if: false && startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.name.outputs.file }}
