@@ -11,6 +11,9 @@
 #include <esp_gap_ble_api.h>
 #include <vector>
 #include <cstdlib>
+#include <cstring>
+#include <esp_heap_caps.h>
+#include <mbedtls/base64.h>
 #include <Core/EntryPoint.h>
 #include <Devices/Display.h>
 #include <Drivers/Input/InputGPIO.h>
@@ -264,7 +267,7 @@ private:
 				else buttonsDown &= ~bit;
 			});
 		}
-		xTaskCreatePinnedToCore([](void* self){ static_cast<ButterBotController*>(self)->diagTask(); }, "bbdiag", 4096,
+		xTaskCreatePinnedToCore([](void* self){ static_cast<ButterBotController*>(self)->diagTask(); }, "bbdiag", 6144,
 		                        this, 1, nullptr, tskNO_AFFINITY);
 	}
 
@@ -283,6 +286,8 @@ private:
 					if(line == "diag on") diagUntil = millis() + DiagHoldMs;
 					else if(line == "diag off") diagUntil = 0;
 					else if(line == "forget") forgetBonds();
+					else if(line == "scr") sendScreen(false);
+					else if(line == "scr full") sendScreen(true);
 					line.clear();
 				}else if(line.size() < 32){
 					line += buf[i];
@@ -300,6 +305,102 @@ private:
 			}
 			vTaskDelay(pdMS_TO_TICKS(20));
 		}
+	}
+
+	/*
+	 * Fork: screen mirror for Dimension Hopper. "scr" prints one line
+	 *   [BBSCR] dev=ctrl w=128 h=128 key=0|1 rows=<changed rows> n=<bytes> d=<base64>
+	 * d decodes to a 16-byte row mask (bit y%8 of byte y/8 = row y included), then the included rows'
+	 * RGB565 pixels (as stored in the frame buffer), run-length coded: a control byte c >= 0x80 means
+	 * (c & 0x7f) + 2 copies of the next pixel, c < 0x80 means c + 1 literal pixels follow.
+	 * Only rows that changed since the last "scr" are sent; "scr full" (or the first request) sends all.
+	 * At 115200 baud a static menu costs a few hundred bytes, a full busy frame up to ~44 KB (~4 s).
+	 */
+	static constexpr int ScrW = LVGL::Width, ScrH = LVGL::Height, ScrN = ScrW * ScrH;
+	uint16_t* scrNow = nullptr;
+	uint16_t* scrPrev = nullptr;
+	uint8_t* scrPacked = nullptr;
+	uint8_t* scrText = nullptr;
+	bool scrPrevValid = false;
+	static constexpr size_t ScrPackedMax = ScrH / 8 + ScrN * 2 + ScrN / 128 + 16;
+	static constexpr size_t ScrTextMax = (ScrPackedMax + 2) / 3 * 4 + 4;
+
+	void sendScreen(bool full){
+		LVGL* lvgl = getService<LVGL>();
+		if(lvgl == nullptr){
+			printf("[BBSCR] dev=ctrl busy=nodisplay\n");
+			return;
+		}
+		auto grab = [](size_t bytes){ return heap_caps_malloc(bytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT); };
+		if(scrNow == nullptr) scrNow = static_cast<uint16_t*>(grab(ScrN * 2));
+		if(scrPrev == nullptr) scrPrev = static_cast<uint16_t*>(grab(ScrN * 2));
+		if(scrPacked == nullptr) scrPacked = static_cast<uint8_t*>(grab(ScrPackedMax));
+		if(scrText == nullptr) scrText = static_cast<uint8_t*>(grab(ScrTextMax));
+		if(scrNow == nullptr || scrPrev == nullptr || scrPacked == nullptr || scrText == nullptr){
+			printf("[BBSCR] dev=ctrl busy=nomem\n");
+			return;
+		}
+
+		lvgl->snapshot(scrNow);
+		if(!scrPrevValid) full = true;
+
+		uint8_t* const mask = scrPacked;
+		memset(mask, 0, ScrH / 8);
+		int rows = 0;
+		for(int y = 0; y < ScrH; ++y){
+			if(full || memcmp(scrNow + y * ScrW, scrPrev + y * ScrW, ScrW * 2) != 0){
+				mask[y / 8] |= 1u << (y % 8);
+				rows++;
+			}
+		}
+
+		// Gather the changed rows' pixels in order and run-length code them.
+		uint8_t* o = scrPacked + ScrH / 8;
+		const int total = rows * ScrW;
+		// Index of each included row, so the k-th sent pixel is found in O(1).
+		int rowOf[ScrH];
+		for(int y = 0, i = 0; y < ScrH; ++y) if(mask[y / 8] & (1u << (y % 8))) rowOf[i++] = y;
+		auto at = [&](int k){ return scrNow[rowOf[k / ScrW] * ScrW + k % ScrW]; };
+
+		int k = 0;
+		while(k < total){
+			const uint16_t v = at(k);
+			int run = 1;
+			while(k + run < total && run < 129 && at(k + run) == v) run++;
+			if(run >= 2){
+				*o++ = 0x80 | (run - 2);
+				*o++ = v & 0xff;
+				*o++ = v >> 8;
+				k += run;
+				continue;
+			}
+			// literal: until the next run of 3+ or 128 pixels
+			uint8_t* ctl = o++;
+			int lit = 0;
+			while(k < total && lit < 128){
+				const uint16_t w = at(k);
+				if(lit > 0 && k + 2 < total && at(k + 1) == w && at(k + 2) == w) break;
+				*o++ = w & 0xff;
+				*o++ = w >> 8;
+				lit++;
+				k++;
+			}
+			*ctl = lit - 1;
+		}
+		const size_t packed = o - scrPacked;
+
+		size_t textLen = 0;
+		mbedtls_base64_encode(scrText, ScrTextMax, &textLen, scrPacked, packed);
+
+		flockfile(stdout);
+		printf("[BBSCR] dev=ctrl w=%d h=%d key=%d rows=%d n=%u d=", ScrW, ScrH, full ? 1 : 0, rows, (unsigned) packed);
+		fwrite(scrText, 1, textLen, stdout);
+		fputc('\n', stdout);
+		fflush(stdout);
+		funlockfile(stdout);
+
+		memcpy(scrPrev, scrNow, ScrN * 2);
+		scrPrevValid = true;
 	}
 
 	void printDiag() const{

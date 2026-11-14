@@ -34,7 +34,8 @@ this **controller firmware**, and **Dimension Hopper**, the Windows app that upd
 
 ### USB console (used by Dimension Hopper)
 A status line every 5 seconds (battery, link, firmware, why it last restarted), a live diagnostics stream for the
-*Diagnostics* tab, pairing logs, and a `forget` command.
+*Diagnostics* tab, pairing logs, a `forget` command, and `scr`, which sends what the screen shows so Dimension
+Hopper can mirror it live (only the rows that changed, compressed).
 
 ## Problems and ideas
 

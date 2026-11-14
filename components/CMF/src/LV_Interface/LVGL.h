@@ -2,6 +2,7 @@
 #define CMF_LVGL_H
 
 #include <lvgl.h>
+#include <atomic>
 #include "LVScreen.h"
 #include "Devices/Display.h"
 #include "Entity/AsyncEntity.h"
@@ -34,6 +35,16 @@ public:
 	/** Starts the LVGL thread. Must be called after startScreen(). */
 	void startThread() noexcept;
 
+	/**
+	 * Fork: copies what the screen shows (128x128 RGB565, as sent to the panel) into out.
+	 * If LVGL is drawing, the copy is taken from the next flush so it's never half-drawn; if the
+	 * screen is static (no flush within timeoutMs), the panel buffer is copied directly.
+	 * Safe to call from any task. Returns false if out is null.
+	 */
+	bool snapshot(uint16_t* out, uint32_t timeoutMs = 150);
+	static constexpr int Width = 128;
+	static constexpr int Height = 128;
+
 protected:
 	void begin() noexcept override;
 
@@ -54,6 +65,9 @@ private:
 	void applyPendingScreen();
 
 	SemaphoreHandle_t initSem;
+
+	std::atomic<uint16_t*> snapTarget{ nullptr };
+	SemaphoreHandle_t snapSem = nullptr;
 };
 
 #endif //CMF_LVGL_H

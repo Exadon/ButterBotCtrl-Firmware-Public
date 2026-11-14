@@ -1,3 +1,4 @@
+#include <cstring>
 #include "LVGL.h"
 #include "InputLVGL.h"
 #include "Log/Log.h"
@@ -28,6 +29,7 @@ LVGL::LVGL(Display* display, std::function<lv_theme_t*(lv_disp_t*)> themeInit) :
 	}
 
 	initSem = xSemaphoreCreateBinary();
+	snapSem = xSemaphoreCreateBinary();
 }
 
 void LVGL::tick(float deltaTime) noexcept{
@@ -60,7 +62,33 @@ void LVGL::flush(lv_display_t* disp, const lv_area_t* area, uint8_t* px_map){
 
 	lgfx.pushImage(x, y, w, h, data);
 
+	// Fork: screen mirror. Full render mode, so px_map holds the whole frame here.
+	if(uint16_t* target = lvgl->snapTarget.exchange(nullptr)){
+		if(x == 0 && y == 0 && w == Width && h == Height){
+			memcpy(target, data, Width * Height * 2);
+		}else{
+			memcpy(target, lvgl->display->getCanvas().getBuffer(), Width * Height * 2);
+		}
+		xSemaphoreGive(lvgl->snapSem);
+	}
+
 	lv_display_flush_ready(disp);
+}
+
+bool LVGL::snapshot(uint16_t* out, uint32_t timeoutMs){
+	if(out == nullptr) return false;
+	xSemaphoreTake(snapSem, 0); // drop a stale give
+	snapTarget.store(out);
+	if(xSemaphoreTake(snapSem, pdMS_TO_TICKS(timeoutMs)) == pdTRUE) return true;
+
+	// No flush in time: the screen isn't changing. Take the request back; if flush grabbed it
+	// meanwhile, wait for that copy instead.
+	if(snapTarget.exchange(nullptr) == nullptr){
+		xSemaphoreTake(snapSem, portMAX_DELAY);
+		return true;
+	}
+	memcpy(out, display->getCanvas().getBuffer(), Width * Height * 2);
+	return true;
 }
 
 void LVGL::resume(){
