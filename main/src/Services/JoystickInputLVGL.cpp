@@ -1,6 +1,8 @@
 #include "JoystickInputLVGL.h"
 #include <algorithm>
 #include <cstdlib>
+#include <Core/Application.h>
+#include "ShutdownService.h"
 
 JoystickInputLVGL::JoystickInputLVGL(Joystick* joystick, ButtonInput* bi, Enum<int> enterButton) :
 		Super(bi, {}, {}), joystick(joystick), bi(bi), enterButton(enterButton){
@@ -24,6 +26,18 @@ void JoystickInputLVGL::readJoystick(lv_indev_data_t* data){
 	}else{
 		currentKey = readDirection();
 		pressed = currentKey != static_cast<lv_key_t>(0);
+	}
+
+	// Fork: a pushed stick is activity too. LVGL polls this on every screen (menus, RC, the game), so this one place
+	// keeps the controller awake whenever the stick is in use.
+	if(pressed){
+		static ShutdownService* shutdown = nullptr;
+		if(shutdown == nullptr){
+			shutdown = Application::getApp()->getService<ShutdownService>();
+		}
+		if(shutdown != nullptr){
+			shutdown->keepAwake();
+		}
 	}
 
 	if(pressed && lastReportedPressed && lastReportedKey != currentKey){

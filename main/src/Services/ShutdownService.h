@@ -22,6 +22,10 @@ public:
 	//To prevent multiple simultaneous shutdown calls
 	static SemaphoreHandle_t shutdownSem;
 
+	// Fork: counts as activity, like a button press (the joystick calls it while it's pushed - playing Butter Run or
+	// driving with the stick alone used to put the controller to sleep)
+	void keepAwake();
+
 private:
 	void tick(float deltaTime) noexcept override;
 

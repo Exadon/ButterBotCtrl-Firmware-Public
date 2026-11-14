@@ -78,6 +78,10 @@ void ShutdownService::tick(float deltaTime) noexcept{
 	}
 }
 
+void ShutdownService::keepAwake(){
+	xSemaphoreGive(inactivitySem);
+}
+
 void ShutdownService::inputEvent(Enum<int> btn, ButtonInput::Action action){
 	xSemaphoreGive(inactivitySem);
 }
