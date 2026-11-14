@@ -30,7 +30,11 @@ public:
 	 * @param initial where to open (restores the last position)
 	 */
 	ActionElement(lv_obj_t* parent, lv_group_t* inputGroup, std::function<void()> settingsCb,
-	              std::function<void(BB::Action::Scenario, ScenarioData)> scenarioCb, ActionListState initial = {});
+	              std::function<void(BB::Action::Scenario, ScenarioData)> scenarioCb, ActionListState initial = {},
+	              std::function<void(int)> extraCb = {});
+
+	/** Fork: rows under SETTINGS in the folder list; extraCb gets one of these. */
+	enum ExtraRow : int { RobotStatusRow = 1, GameRow = 2 };
 	~ActionElement() override;
 
 	ActionListState getState() const;
@@ -49,9 +53,10 @@ private:
 	lv_group_t* inputGroup;
 	const std::function<void()> settingsCb;
 	const std::function<void(BB::Action::Scenario, ScenarioData)> scenarioCb;
+	const std::function<void(int)> extraCb;
 
-	// The folder list shows SETTINGS as row 0, so folder i is row i + FolderRowOffset
-	static constexpr int32_t FolderRowOffset = 1;
+	// The folder list shows SETTINGS, ROBOT STATUS and BUTTER RUN as rows 0-2, so folder i is row i + FolderRowOffset
+	static constexpr int32_t FolderRowOffset = 3;
 	static constexpr const char* SettingsTitle = "SETTINGS";
 
 	int16_t currentFolder = -1;

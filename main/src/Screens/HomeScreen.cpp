@@ -11,6 +11,8 @@
 
 #include "PairingScreen.h"
 #include "SettingsScreen.h"
+#include "StatusScreen.h"
+#include "GameScreen.h"
 #include "Fonts/font.hpp"
 #include "Components/HomeWindows/RambleWindow.h"
 #include "Components/HomeWindows/WanderWindow.h"
@@ -23,6 +25,7 @@
 #include "Components/HomeWindows/ShakeWindow.h"
 #include "Components/HomeWindows/JokeWindow.h"
 #include "Components/HomeWindows/ChatWindow.h"
+#include "Components/HomeWindows/SubtitleWindow.h"
 #include "Components/HomeWindows/PortalWindow.h"
 #include "Components/HomeWindows/FactWindow.h"
 #include "Components/HomeWindows/PassTheButterWindow.h"
@@ -334,6 +337,11 @@ void HomeScreen::handleDataEvent(const BB::State state, const BB::Action action,
 		return;
 	}
 
+	// A late reply to the Robot status page - not a window
+	if(state == BB::State::Idle && action.idle == BB::Action::Idle::RobotStatus){
+		return;
+	}
+
 	// Listen carries its phase in the data payload; a phase change means a new window,
 	// a repeated packet of the same phase is only an update
 	bool listenPhaseChanged = false;
@@ -364,6 +372,9 @@ void HomeScreen::handleDataEvent(const BB::State state, const BB::Action action,
 			// WhatsPlayingData is variable-length (std::string fields); deserialize into a real object
 			const WhatsPlayingData wp = WhatsPlayingData::deserialize(data.data(), data.size());
 			activeWindow->onData(&wp);
+		} else if(state == BB::State::Scenario && action.scenario == BB::Action::Scenario::Subtitle){
+			const SubtitleData sub = SubtitleData::deserialize(data.data(), data.size());
+			activeWindow->onData(&sub);
 		} else if(data.empty() || data.size() != activeWindowDataSize){
 			// Windows cast this straight to their data struct, so an empty or wrong-sized update
 			// would dereference null or read past the buffer. Ignore it.
@@ -435,6 +446,12 @@ HomeWindow* HomeScreen::createActionWindow(const BB::State state, const BB::Acti
 			case BB::Action::Scenario::Chat:
 				newWin = initActionWindow<ChatWindow, ChatData>(windowContainer, data);
 				break;
+			case BB::Action::Scenario::Subtitle: {
+				// SubtitleData is variable-length; deserialize it explicitly
+				const SubtitleData subData = SubtitleData::deserialize(data.data(), data.size());
+				newWin = new SubtitleWindow(windowContainer, &subData);
+				break;
+			}
 			case BB::Action::Scenario::OpenPortal:
 				newWin = initActionWindow<PortalWindow, OpenPortalData>(windowContainer, data);
 				break;
@@ -695,7 +712,13 @@ void HomeScreen::showActions(){
 		com->sendScenario(scenario, data);
 		// Deleting the list mid-event-dispatch is unsafe; close it on the next loop() tick
 		actionsClosePending = true;
-	}, lastActionState);
+	}, lastActionState, [this](const int row) {
+		if(row == ActionElement::RobotStatusRow){
+			transition([]() { return std::make_unique<StatusScreen>(); });
+		}else if(row == ActionElement::GameRow){
+			transition([]() { return std::make_unique<GameScreen>(); });
+		}
+	});
 
 	lv_obj_set_pos(*actionElement, 0, 8); // right below the TopBar
 	lv_obj_move_foreground(*actionElement);

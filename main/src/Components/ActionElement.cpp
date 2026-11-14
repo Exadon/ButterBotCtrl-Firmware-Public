@@ -9,8 +9,10 @@
 #include "Fonts/font.hpp"
 
 ActionElement::ActionElement(lv_obj_t* parent, lv_group_t* inputGroup, std::function<void()> settingsCb,
-                             std::function<void(BB::Action::Scenario, ScenarioData)> scenarioCb, const ActionListState initial)
-		: LVObject(parent), inputGroup(inputGroup), settingsCb(std::move(settingsCb)), scenarioCb(std::move(scenarioCb)){
+                             std::function<void(BB::Action::Scenario, ScenarioData)> scenarioCb, const ActionListState initial,
+                             std::function<void(int)> extraCb)
+		: LVObject(parent), inputGroup(inputGroup), settingsCb(std::move(settingsCb)), scenarioCb(std::move(scenarioCb)),
+		  extraCb(std::move(extraCb)){
 	theme = Application::getApp()->getService<ThemeService>();
 
 	buildStyles();
@@ -106,6 +108,8 @@ void ActionElement::show(int16_t folder, uint16_t focusIndex){
 		phraseTexts.reserve(std::size(ActionFolders));
 		buttons.reserve(std::size(ActionFolders) + FolderRowOffset);
 		addButton(SettingsTitle, nullptr, true);
+		addButton("ROBOT STATUS", "Battery, WiFi, AI mode, memory");
+		addButton("BUTTER RUN", "A game: grab butter, dodge monsters");
 		for(const ActionFolder& f : ActionFolders){
 			phraseTexts.push_back(std::to_string(folderSize(f)) + (f.isChat ? " chat lines" : " actions"));
 			addButton(f.name, phraseTexts.back().c_str());
@@ -242,6 +246,10 @@ void ActionElement::onItemClicked(const lv_obj_t* btn){
 	if(currentFolder < 0){
 		if(index == 0){
 			if(settingsCb) settingsCb();
+			return;
+		}
+		if(index < FolderRowOffset){
+			if(extraCb) extraCb(index);
 			return;
 		}
 		// Open the folder (deferred: we're inside this row's own event)

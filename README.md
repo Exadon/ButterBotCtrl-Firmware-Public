@@ -17,7 +17,18 @@ this **controller firmware**, and **Dimension Hopper**, the Windows app that upd
 ### AI conversations
 - Shows what the robot is doing while it talks to its AI brain: *Listening… reluctantly*, *Heard you. Unfortunately.*
   and an animated *Consulting my brain…* while the PC thinks.
+- Subtitles: while the robot answers, the screen shows what it heard you say and what it is saying.
 - Copes with screens a newer robot might send that it doesn't know (shows "..." instead of crashing).
+
+### Robot Status page
+*ROBOT STATUS* in the menu shows the robot's battery and charging, free memory, WiFi network, AI mode and how the
+last try went, your last conversation, how long it has been awake and its firmware. It refreshes every 3 seconds;
+the stick scrolls, *Manual Override* goes back. Needs the matching robot fork firmware.
+
+### Butter Run (a game)
+*BUTTER RUN* in the menu: a portal drifts across the top of the screen dropping butter and monsters. Steer ButterBot
+with the stick, grab butter (+1, golden butter +5) and dodge monsters. Three lives, it speeds up over time, and the
+best score is saved. *Shut Up* starts and pauses, *Manual Override* leaves.
 
 ### Driving and menus
 - Joystick centre calibration and hysteresis, so the stick doesn't drift or flicker between menu items.
