@@ -302,6 +302,55 @@ private:
 		printf("[BBTHEME] theme=%d count=%d\n", n, (int) Theme::COUNT);
 	}
 
+	/*
+	 * Fork: screen brightness and sleep time from Dimension Hopper's Personalize tab.
+	 * "screen" prints them, "screen <brightness 5-100> <sleep minutes: 2|5|10|30|0=never>" saves and applies them.
+	 * Reply: [BBSCREEN] bright=<percent> sleep=<minutes, 0 = never>
+	 */
+	void printScreenSettings(){
+		const Settings* settings = getService<Settings>();
+		if(settings == nullptr){
+			printf("[BBSCREEN] result=error\n");
+			return;
+		}
+		const SettingsStruct s = settings->get();
+		const int sleep = s.inactivityTimeout == InactivityTimeout::Off ? 0 : (int) s.inactivityTimeout;
+		printf("[BBSCREEN] bright=%d sleep=%d\n", (int) (s.screenBrightness * 100.0f + 0.5f), sleep);
+	}
+
+	void setScreenSettings(const char* args){
+		Settings* settings = getService<Settings>();
+		int bright = -1, sleep = -1;
+		if(settings == nullptr || sscanf(args, "%d %d", &bright, &sleep) != 2 || bright < 5 || bright > 100){
+			printf("[BBSCREEN] result=error\n");
+			return;
+		}
+		InactivityTimeout timeout;
+		switch(sleep){
+			case 0: timeout = InactivityTimeout::Off; break;
+			case 2: timeout = InactivityTimeout::Min2; break;
+			case 5: timeout = InactivityTimeout::Min5; break;
+			case 10: timeout = InactivityTimeout::Min10; break;
+			case 30: timeout = InactivityTimeout::Min30; break;
+			default:
+				printf("[BBSCREEN] result=error\n");
+				return;
+		}
+		SettingsStruct s = settings->get();
+		s.screenBrightness = (float) bright / 100.0f;
+		s.inactivityTimeout = timeout;
+		settings->set(s);
+		settings->store();
+		if(ShutdownService* shutdown = getService<ShutdownService>()) shutdown->keepAwake(); // the new sleep time counts from now
+		LVGL* lvgl = getService<LVGL>();
+		auto* led = getService<LED<LEDs, RGB_LEDs>>();
+		if(lvgl != nullptr && led != nullptr){
+			const float value = s.screenBrightness;
+			lvgl->runOnUi([led, value]{ led->on(LEDs::TftBacklight, value); });
+		}
+		printScreenSettings();
+	}
+
 	void startStatusReporter(){
 		if(ButtonInput* bi = getService<ButtonInput>()){
 			bi->OnButtonEvent.bind(this, [this](Enum<int> btn, ButtonInput::Action action){
@@ -333,6 +382,8 @@ private:
 					else if(line == "scr full") sendScreen(true);
 					else if(line == "theme") printTheme();
 					else if(line.rfind("theme ", 0) == 0) setTheme(atoi(line.c_str() + 6));
+					else if(line == "screen") printScreenSettings();
+					else if(line.rfind("screen ", 0) == 0) setScreenSettings(line.c_str() + 7);
 					line.clear();
 				}else if(line.size() < 32){
 					line += buf[i];
