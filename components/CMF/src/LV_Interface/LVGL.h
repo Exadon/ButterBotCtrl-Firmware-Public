@@ -3,6 +3,8 @@
 
 #include <lvgl.h>
 #include <atomic>
+#include <functional>
+#include <mutex>
 #include "LVScreen.h"
 #include "Devices/Display.h"
 #include "Entity/AsyncEntity.h"
@@ -21,6 +23,9 @@ public:
 	 * queue) or from an LVGL timer/animation callback.
 	 */
 	void startScreen(std::function<std::unique_ptr<LVScreen>()> create, lv_screen_load_anim_t anim = LV_SCR_LOAD_ANIM_NONE);
+
+	/** Fork: runs fn on the LVGL thread at the start of its next tick (from any task). Last call wins. */
+	void runOnUi(std::function<void()> fn);
 
 	/** startScreen should be called immediately after this function. */
 	void stopScreen();
@@ -60,6 +65,8 @@ private:
 	std::unique_ptr<LVScreen> currentScreen;
 
 	std::function<std::unique_ptr<LVScreen>()> nextScreenCreate;
+	std::mutex uiCallLock;
+	std::function<void()> uiCall; // fork: runOnUi()
 	lv_screen_load_anim_t nextScreenAnim = LV_SCR_LOAD_ANIM_NONE;
 
 	void applyPendingScreen();

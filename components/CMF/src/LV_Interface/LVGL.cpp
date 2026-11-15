@@ -32,7 +32,22 @@ LVGL::LVGL(Display* display, std::function<lv_theme_t*(lv_disp_t*)> themeInit) :
 	snapSem = xSemaphoreCreateBinary();
 }
 
+void LVGL::runOnUi(std::function<void()> fn){
+	std::lock_guard<std::mutex> g(uiCallLock);
+	uiCall = std::move(fn);
+}
+
 void LVGL::tick(float deltaTime) noexcept{
+	std::function<void()> call;
+	{
+		std::lock_guard<std::mutex> g(uiCallLock);
+		call = std::move(uiCall);
+		uiCall = nullptr;
+	}
+	if(call){
+		call();
+	}
+
 	// Apply any queued transition before running the current screen's loop or
 	// the LVGL timer handler. AsyncEntity guarantees scanEvents() has returned
 	// before tick() runs, so destroying currentScreen here can no longer

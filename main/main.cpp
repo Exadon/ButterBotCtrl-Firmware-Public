@@ -45,6 +45,8 @@
 #include "Services/RobotState.h"
 #include "Services/Settings.h"
 #include "Screens/IntroScreen.h"
+#include "Screens/HomeScreen.h"
+#include "Screens/PairingScreen.h"
 #include "JigHWTest/JigHWTest.h"
 
 class ButterBotController : public Application {
@@ -260,9 +262,10 @@ private:
 	std::atomic<uint32_t> buttonsDown{ 0 }; // bit per Button enum value
 
 	/*
-	 * Fork: the colour theme from Dimension Hopper's Personalize tab. "theme" prints it, "theme <0-3>" saves a new
-	 * one (Main, Rose, Red, Blue) and restarts, since the theme's artwork is loaded at start-up.
-	 * Reply: [BBTHEME] theme=<n> count=<n> [restart=1]
+	 * Fork: the colour theme from Dimension Hopper's Personalize tab. "theme" prints it, "theme <n>" saves a new one
+	 * and switches to it live: on the LVGL thread, the current screen is closed, the theme's artwork loaded, and the
+	 * home screen (or pairing, if the robot isn't connected) opens in the new colours.
+	 * Reply: [BBTHEME] theme=<n> count=<n>
 	 */
 	void printTheme(){
 		const Settings* settings = getService<Settings>();
@@ -279,10 +282,24 @@ private:
 		s.currentTheme = (Theme) n;
 		settings->set(s);
 		settings->store();
-		printf("[BBTHEME] theme=%d count=%d restart=1\n", n, (int) Theme::COUNT);
-		fflush(stdout);
-		vTaskDelay(pdMS_TO_TICKS(300));
-		esp_restart();
+		LVGL* lvgl = getService<LVGL>();
+		ThemeService* theme = getService<ThemeService>();
+		if(lvgl == nullptr || theme == nullptr){
+			printf("[BBTHEME] result=error\n");
+			return;
+		}
+		lvgl->runOnUi([this, lvgl, theme, n]{
+			// Close the screen first: it still points at the old theme's images
+			lvgl->stopScreen();
+			theme->setTheme((Theme) n);
+			const Com* com = getService<Com>();
+			if(com != nullptr && com->getStatus() == Com::ConnStatus::Connected){
+				lvgl->startScreen([]{ return std::make_unique<HomeScreen>(); });
+			}else{
+				lvgl->startScreen([]{ return std::make_unique<PairingScreen>(); });
+			}
+		});
+		printf("[BBTHEME] theme=%d count=%d\n", n, (int) Theme::COUNT);
 	}
 
 	void startStatusReporter(){
