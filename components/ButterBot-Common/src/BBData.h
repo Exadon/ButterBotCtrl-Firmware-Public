@@ -475,6 +475,9 @@ struct RobotStatusData : BBData {
 	std::string problem;     // last AI problem ("none" when the last try worked)
 	std::string heard;       // last thing it heard in AI mode
 	std::string said;        // and what it answered
+	uint8_t frontSensor = 0; // FrontSensorMode  } the robot's settings, after the strings so older readers skip them
+	uint8_t bottomSensor = 0; // BottomSensorMode }
+	uint8_t activity = 0;    // ActivityMode     }
 
 	std::vector<uint8_t> serialize() const{
 		std::vector<uint8_t> buf;
@@ -486,6 +489,7 @@ struct RobotStatusData : BBData {
 		ComSerial::writeString(buf, problem, 24);
 		ComSerial::writeString(buf, heard, MaxSaid);
 		ComSerial::writeString(buf, said, MaxSaid);
+		for(uint8_t v : { frontSensor, bottomSensor, activity }) ComSerial::writeU8(buf, v);
 		return buf;
 	}
 
@@ -507,6 +511,9 @@ struct RobotStatusData : BBData {
 		d.problem = ComSerial::readString(cur, end);
 		d.heard = ComSerial::readString(cur, end);
 		d.said = ComSerial::readString(cur, end);
+		d.frontSensor = ComSerial::readU8(cur, end);
+		d.bottomSensor = ComSerial::readU8(cur, end);
+		d.activity = ComSerial::readU8(cur, end);
 		return d;
 	}
 };

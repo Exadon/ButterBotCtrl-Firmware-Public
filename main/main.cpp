@@ -259,6 +259,32 @@ private:
 	uint64_t diagUntil = 0;
 	std::atomic<uint32_t> buttonsDown{ 0 }; // bit per Button enum value
 
+	/*
+	 * Fork: the colour theme from Dimension Hopper's Personalize tab. "theme" prints it, "theme <0-3>" saves a new
+	 * one (Main, Rose, Red, Blue) and restarts, since the theme's artwork is loaded at start-up.
+	 * Reply: [BBTHEME] theme=<n> count=<n> [restart=1]
+	 */
+	void printTheme(){
+		const Settings* settings = getService<Settings>();
+		printf("[BBTHEME] theme=%d count=%d\n", settings ? (int) settings->get().currentTheme : 0, (int) Theme::COUNT);
+	}
+
+	void setTheme(const int n){
+		Settings* settings = getService<Settings>();
+		if(settings == nullptr || n < 0 || n >= (int) Theme::COUNT){
+			printf("[BBTHEME] result=error\n");
+			return;
+		}
+		SettingsStruct s = settings->get();
+		s.currentTheme = (Theme) n;
+		settings->set(s);
+		settings->store();
+		printf("[BBTHEME] theme=%d count=%d restart=1\n", n, (int) Theme::COUNT);
+		fflush(stdout);
+		vTaskDelay(pdMS_TO_TICKS(300));
+		esp_restart();
+	}
+
 	void startStatusReporter(){
 		if(ButtonInput* bi = getService<ButtonInput>()){
 			bi->OnButtonEvent.bind(this, [this](Enum<int> btn, ButtonInput::Action action){
@@ -288,6 +314,8 @@ private:
 					else if(line == "forget") forgetBonds();
 					else if(line == "scr") sendScreen(false);
 					else if(line == "scr full") sendScreen(true);
+					else if(line == "theme") printTheme();
+					else if(line.rfind("theme ", 0) == 0) setTheme(atoi(line.c_str() + 6));
 					line.clear();
 				}else if(line.size() < 32){
 					line += buf[i];
