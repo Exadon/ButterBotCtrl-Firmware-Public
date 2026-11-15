@@ -58,6 +58,13 @@ static const ThemeStyle ThemeStyleRed = {
 	colorRedBg,
 };
 
+// fork: the recoloured themes (keep in step with tools/theme_tool.py)
+static const ThemeStyle ThemeStylePortal = { lv_color_make(0, 230, 190), lv_color_make(120, 255, 60), colorBlack };
+static const ThemeStyle ThemeStyleButter = { lv_color_make(255, 214, 64), lv_color_make(214, 140, 0), lv_color_make(30, 18, 0) };
+static const ThemeStyle ThemeStyleIce = { lv_color_make(120, 230, 255), lv_color_make(0, 140, 255), lv_color_make(0, 10, 40) };
+static const ThemeStyle ThemeStyleMono = { colorWhite, lv_color_make(150, 150, 150), colorBlack };
+static const ThemeStyle ThemeStylePurple = { lv_color_make(200, 120, 255), lv_color_make(255, 80, 200), lv_color_make(16, 0, 32) };
+
 static const ThemeStyle ThemeStyleBlue = {
 	colorBlue,
 	colorYellow,
@@ -72,6 +79,11 @@ static const ThemedPathsMap ThemedPaths =
 	{ Theme::Rose, &ThemeRosePaths },
 	{ Theme::Red, &ThemeRedPaths },
 	{ Theme::Blue, &ThemeBluePaths },
+	{ Theme::Portal, &ThemeMainPaths },  // the recoloured themes are copies of Main's archive
+	{ Theme::Butter, &ThemeMainPaths },
+	{ Theme::Ice, &ThemeMainPaths },
+	{ Theme::Mono, &ThemeMainPaths },
+	{ Theme::Purple, &ThemeMainPaths },
 };
 
 static const ThemedStylesMap ThemedStyles =
@@ -80,9 +92,16 @@ static const ThemedStylesMap ThemedStyles =
 	{ Theme::Rose, &ThemeStyleRose },
 	{ Theme::Red, &ThemeStyleRed },
 	{ Theme::Blue, &ThemeStyleBlue },
+	{ Theme::Portal, &ThemeStylePortal },
+	{ Theme::Butter, &ThemeStyleButter },
+	{ Theme::Ice, &ThemeStyleIce },
+	{ Theme::Mono, &ThemeStyleMono },
+	{ Theme::Purple, &ThemeStylePurple },
 };
 
-static constexpr const char* ThemeArchives[] = { "/t_1.sz.hs", "/t_2.sz.hs", "/t_3.sz.hs", "/t_4.sz.hs" };
+static constexpr const char* ThemeArchives[] = { "/t_1.sz.hs", "/t_2.sz.hs", "/t_3.sz.hs", "/t_4.sz.hs",
+												 "/t_5.sz.hs", "/t_6.sz.hs", "/t_7.sz.hs", "/t_8.sz.hs", "/t_9.sz.hs" };
+static_assert(std::size(ThemeArchives) == (size_t) Theme::COUNT, "one archive per theme");
 
 static constexpr const char* IntroArchive = "/intro.sz.hs";
 static constexpr const char* PairingArchive = "/pairing.sz.hs";

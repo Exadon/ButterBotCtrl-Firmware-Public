@@ -3,7 +3,10 @@
 
 
 enum class Theme : uint8_t {
-	Main, Rose, Red, Blue, COUNT
+	Main, Rose, Red, Blue,
+	// fork: Main's artwork recoloured by tools/theme_tool.py (archives t_5..t_9) - append only
+	Portal, Butter, Ice, Mono, Purple,
+	COUNT
 };
 
 enum class Asset {

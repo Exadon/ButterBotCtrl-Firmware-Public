@@ -29,7 +29,7 @@ ThemeSelector::ThemeSelector(lv_obj_t* parent, const std::function<void(uint32_t
 			}
 		} else{
 			if(themeSelector->currentThemeIndex <= 0){
-				themeSelector->currentThemeIndex = 3;
+				themeSelector->currentThemeIndex = ThemesNum - 1;
 			} else{
 				themeSelector->currentThemeIndex -= 1;
 			}

@@ -19,12 +19,17 @@ private:
 	lv_obj_t* selectorLabel;
 
 	uint8_t currentThemeIndex;
-	static constexpr uint8_t ThemesNum = 4;
+	static constexpr uint8_t ThemesNum = (uint8_t) Theme::COUNT;
 	static constexpr std::array<const char*, ThemesNum> ThemeNameMap = {
 		"GREEN MACHINE",
 		"BOOGIE OOGIE",
 		"COZY CORE",
-		"THE MEMO DEMO"
+		"THE MEMO DEMO",
+		"PORTAL JUICE",  // fork: the recoloured themes
+		"BUTTER ZONE",
+		"COLD BOOT",
+		"GREYSCALE",
+		"ULTRAVIOLET",
 	};
 
 	std::function<void(uint32_t)> keyCb;
