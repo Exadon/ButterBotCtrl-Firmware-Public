@@ -174,6 +174,32 @@ void HomeScreen::handleButtonEvent(const Button btn, const ButtonInput::Action a
 		return;
 	}
 
+	// Fork: Poke + Summon held together starts conversation mode (sent from loop() once held for ComboHoldMs)
+	if(btn == Button::Poke || btn == Button::Summon){
+		(btn == Button::Poke ? pokeHeld : summonHeld) = action == ButtonInput::Action::Press;
+		if(action == ButtonInput::Action::Press && pokeHeld && summonHeld && !comboUsed){
+			comboUsed = true;
+			comboStart = millis();
+			summonPressTime = 0; // no Listen on release, no Summon on hold
+			summonHoldEnabled = false;
+			clearPopupFor(Button::Summon);
+			showPopup(new HoldPopupWindow(*this, "Conversation", ComboHoldMs), Button::Summon);
+			return;
+		}
+		if(comboUsed){
+			if(action == ButtonInput::Action::Release){
+				if(comboStart != 0){ // let go too early: nothing happens
+					comboStart = 0;
+					clearPopupFor(Button::Summon);
+				}
+				if(!pokeHeld && !summonHeld){
+					comboUsed = false;
+				}
+			}
+			return;
+		}
+	}
+
 	// Early return if popup modal active
 	if(popup != nullptr && btn != popupOwner){
 		if(static_cast<HoldPopupWindow*>(popup)->isBarFull() || overridePressTime != 0 || summonPressTime != 0){
@@ -257,6 +283,13 @@ void HomeScreen::loop(){
 	const bool busy = activeWindow != nullptr || animActive || !windowQueue.empty() || clearPending || popup != nullptr ||
 		actionElement != nullptr || rcWaitStartTime != 0;
 	lv_obj_update_flag(*guide, LV_OBJ_FLAG_HIDDEN, busy);
+
+	// Fork: conversation mode once Poke + Summon have been held long enough
+	if(comboStart != 0 && millis() - comboStart >= ComboHoldMs){
+		comboStart = 0;
+		clearPopupFor(Button::Summon);
+		com->sendCommand(Ctrl::Command::Converse);
+	}
 
 	// Show hold popup if btn held past the short-press window
 	if(summonHoldEnabled && summonPressTime != 0 && popup == nullptr && millis() - summonPressTime >= SummonShortPressMaxMs){

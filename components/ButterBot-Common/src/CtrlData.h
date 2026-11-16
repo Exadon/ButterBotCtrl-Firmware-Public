@@ -6,7 +6,8 @@
 struct Ctrl {
 	enum Command {
 		EnterRC, ExitRC, Listen, Summon, ShutUp, Poke, Drive, RCSound, Scenario, Settings,
-		Status // fork: ask the robot for RobotStatusData (append only)
+		Status, // fork: ask the robot for RobotStatusData (append only)
+		Converse // fork: conversation mode - listen, reply, listen again until a button is pressed (append only)
 	} type;
 };
 

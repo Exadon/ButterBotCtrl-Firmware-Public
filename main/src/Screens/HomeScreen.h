@@ -87,6 +87,14 @@ private:
 	uint64_t overridePressTime = 0;
 	uint64_t overrideHintShownAt = 0;
 
+	// Fork: Poke + Summon held together for ComboHoldMs = conversation mode (Ctrl::Command::Converse). While both
+	// are down neither does its own thing; their releases are swallowed until both are up again.
+	static constexpr uint64_t ComboHoldMs = 600;
+	bool pokeHeld = false;
+	bool summonHeld = false;
+	uint64_t comboStart = 0;  // both down since then (0 = no combo filling)
+	bool comboUsed = false;   // a combo started: swallow the buttons' releases
+
 	// "Loading RC..." indicator
 	static constexpr const char* RCLoadText = "Loading RC...";
 	static constexpr uint64_t RCLoadTimeoutMs = 2000;

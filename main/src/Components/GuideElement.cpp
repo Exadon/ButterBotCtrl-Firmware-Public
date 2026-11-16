@@ -7,6 +7,7 @@ static constexpr const char* Lines[] = {
 		"Poke: existential dread",
 		"Shut up: mute",
 		"Summon: talk, hold: come",
+		"Poke+Summon hold: chat",
 		"Stick: menu",
 };
 
