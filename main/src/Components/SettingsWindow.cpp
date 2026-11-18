@@ -19,6 +19,7 @@ SettingsWindow::~SettingsWindow(){
 	lv_anim_delete(frontSensorSelector, nullptr);
 	lv_anim_delete(bottomSensorSelector, nullptr);
 	lv_anim_delete(activitySelector, nullptr);
+	lv_anim_delete(homeSelector, nullptr);
 }
 
 void SettingsWindow::buildUI(lv_obj_t* parent){
@@ -105,12 +106,14 @@ void SettingsWindow::buildUI(lv_obj_t* parent){
 		lv_anim_delete(frontSensorSelector->widgetLabel, nullptr);
 		lv_anim_delete(bottomSensorSelector->widgetLabel, nullptr);
 		lv_anim_delete(activitySelector->widgetLabel, nullptr);
+		lv_anim_delete(homeSelector->widgetLabel, nullptr);
 		lv_obj_set_style_opa(themeSelector->widgetLabel, LV_OPA_COVER, 0);
 		lv_obj_set_style_opa(sleepSelector->widgetLabel, LV_OPA_COVER, 0);
 		lv_obj_set_style_opa(brightnessSlider->widgetLabel, LV_OPA_COVER, 0);
 		lv_obj_set_style_opa(frontSensorSelector->widgetLabel, LV_OPA_COVER, 0);
 		lv_obj_set_style_opa(bottomSensorSelector->widgetLabel, LV_OPA_COVER, 0);
 		lv_obj_set_style_opa(activitySelector->widgetLabel, LV_OPA_COVER, 0);
+		lv_obj_set_style_opa(homeSelector->widgetLabel, LV_OPA_COVER, 0);
 
 		if(key == LV_KEY_DOWN){
 			currentFocusIndex = (currentFocusIndex + 1) % WidgetsNum;
@@ -128,8 +131,10 @@ void SettingsWindow::buildUI(lv_obj_t* parent){
 			lv_anim_set_var(&blinkAnim, frontSensorSelector->widgetLabel);
 		} else if(currentFocusIndex == 4){
 			lv_anim_set_var(&blinkAnim, bottomSensorSelector->widgetLabel);
-		} else{
+		} else if(currentFocusIndex == 5){
 			lv_anim_set_var(&blinkAnim, activitySelector->widgetLabel);
+		} else{
+			lv_anim_set_var(&blinkAnim, homeSelector->widgetLabel);
 		}
 		lv_anim_start(&blinkAnim);
 
@@ -207,8 +212,18 @@ void SettingsWindow::buildUI(lv_obj_t* parent){
 	};
 	activitySelector = new ActivitySelector(innerContent, initSet.activityMode, switchCb, activityValCb);
 	lv_obj_set_pos(*activitySelector, 2, 103);
-	lv_obj_set_style_margin_bottom(*activitySelector, 4, 0);
 	lv_group_add_obj(inputGroup, *activitySelector);
+
+	// Fork: what the home screen shows when nothing else is on it - the button hints or the little robot
+	const std::function<void(HomeView)> homeValCb = [this](const HomeView view) {
+		SettingsStruct currentSet = settings->get();
+		currentSet.homeView = view;
+		settings->set(currentSet);
+	};
+	homeSelector = new HomeSelector(innerContent, initSet.homeView, switchCb, homeValCb);
+	lv_obj_set_pos(*homeSelector, 2, 125);
+	lv_obj_set_style_margin_bottom(*homeSelector, 4, 0);
+	lv_group_add_obj(inputGroup, *homeSelector);
 
 	lv_group_set_editing(inputGroup, true);
 

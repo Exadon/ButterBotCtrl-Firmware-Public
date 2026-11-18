@@ -303,6 +303,34 @@ private:
 	}
 
 	/*
+	 * Fork: what the home screen shows when nothing else is on it (Settings > HOME), from Dimension Hopper.
+	 * "home" prints it, "home hints" / "home robot" saves it (the home screen follows straight away).
+	 * Reply: [BBHOME] view=hints|robot
+	 */
+	void printHomeView(){
+		const Settings* settings = getService<Settings>();
+		if(settings == nullptr){
+			printf("[BBHOME] result=error\n");
+			return;
+		}
+		printf("[BBHOME] view=%s\n", settings->get().homeView == HomeView::Robot ? "robot" : "hints");
+	}
+
+	void setHomeView(const char* arg){
+		Settings* settings = getService<Settings>();
+		const bool robot = strcmp(arg, "robot") == 0;
+		if(settings == nullptr || (!robot && strcmp(arg, "hints") != 0)){
+			printf("[BBHOME] result=error\n");
+			return;
+		}
+		SettingsStruct s = settings->get();
+		s.homeView = robot ? HomeView::Robot : HomeView::Hints;
+		settings->set(s);
+		settings->store();
+		printHomeView();
+	}
+
+	/*
 	 * Fork: screen brightness and sleep time from Dimension Hopper's Personalize tab.
 	 * "screen" prints them, "screen <brightness 5-100> <sleep minutes: 2|5|10|30|0=never>" saves and applies them.
 	 * Reply: [BBSCREEN] bright=<percent> sleep=<minutes, 0 = never>
@@ -383,6 +411,8 @@ private:
 					else if(line == "theme") printTheme();
 					else if(line.rfind("theme ", 0) == 0) setTheme(atoi(line.c_str() + 6));
 					else if(line == "screen") printScreenSettings();
+					else if(line == "home") printHomeView();
+					else if(line.rfind("home ", 0) == 0) setHomeView(line.c_str() + 5);
 					else if(line.rfind("screen ", 0) == 0) setScreenSettings(line.c_str() + 7);
 					line.clear();
 				}else if(line.size() < 32){

@@ -279,10 +279,18 @@ void HomeScreen::loop(){
 	}
 	lv_obj_update_flag(rcLoadingLabel, LV_OBJ_FLAG_HIDDEN, rcWaitStartTime == 0);
 
-	// Show the guide only when nothing else is on screen
+	// Show the guide only when nothing else is on screen - or, with Settings > HOME = ROBOT, the little robot instead
 	const bool busy = activeWindow != nullptr || animActive || !windowQueue.empty() || clearPending || popup != nullptr ||
 		actionElement != nullptr || rcWaitStartTime != 0;
-	lv_obj_update_flag(*guide, LV_OBJ_FLAG_HIDDEN, busy);
+	const bool robotView = homeSettings != nullptr && homeSettings->get().homeView == HomeView::Robot;
+	lv_obj_update_flag(*guide, LV_OBJ_FLAG_HIDDEN, busy || robotView);
+	const bool showRobot = robotView && !busy;
+	lv_obj_update_flag(*robot, LV_OBJ_FLAG_HIDDEN, !showRobot);
+	if(showRobot){
+		if(!robotShown) robot->reset();
+		robot->loop();
+	}
+	robotShown = showRobot;
 
 	// Fork: conversation mode once Poke + Summon have been held long enough
 	if(comboStart != 0 && millis() - comboStart >= ComboHoldMs){
@@ -879,6 +887,12 @@ void HomeScreen::buildUI(){
 	// Guide element
 	guide = new GuideElement(windowContainer);
 	lv_obj_center(*guide);
+
+	// Fork: the robot view (Settings > HOME), shown instead of the guide
+	homeSettings = Application::getApp()->getService<Settings>();
+	robot = new RobotElement(windowContainer);
+	lv_obj_center(*robot);
+	lv_obj_add_flag(*robot, LV_OBJ_FLAG_HIDDEN);
 
 	// "Loading RC..." label
 	rcLoadingLabel = lv_label_create(windowContainer);

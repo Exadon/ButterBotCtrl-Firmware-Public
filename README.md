@@ -34,6 +34,9 @@ best score is saved. *Shut Up* starts and pauses, *Manual Override* leaves.
 - Joystick centre calibration and hysteresis, so the stick doesn't drift or flicker between menu items.
 - An RC drive speed setting; an exit hint in RC mode, and pressing exits.
 - Push the stick to open the menu; *Shut Up* selects and *Manual Override* goes back; *Settings* is back on top.
+- **Settings > HOME**: the home screen shows the button hints, or - for people who know the buttons - a little animated
+  ButterBot drawn in the theme's colours that bobs, blinks, looks around, rolls to and fro and now and then waves.
+  Also in Dimension Hopper (Personalize > Controller > Home).
 - Screens ignore the release of a button that was pressed before they opened (no more accidental selections).
 - Action list folders, chat and portal windows, and *Open a Portal* in the menu, matching the robot fork's new commands.
 

@@ -14,6 +14,8 @@
 #include "Components/TopBar.h"
 #include "Components/HomeWindow.h"
 #include "Components/GuideElement.h"
+#include "Components/RobotElement.h"
+#include "Services/Settings.h"
 #include "Components/ActionElement.h"
 
 class HomeScreen : public LVScreen {
@@ -57,6 +59,9 @@ private:
 	// Payload size the active window was created with; live updates must match it (see onData)
 	size_t activeWindowDataSize = 0;
 	GuideElement* guide = nullptr;
+	RobotElement* robot = nullptr; // fork: Settings > HOME = ROBOT shows it instead of the guide
+	bool robotShown = false;
+	Settings* homeSettings = nullptr;
 
 	lv_anim_t windowFadeAnim;
 	AnimUserData currentAnimData;
